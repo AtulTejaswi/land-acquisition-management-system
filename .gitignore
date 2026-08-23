@@ -39,3 +39,10 @@ docker-compose.override.yml
 # Database
 *.db
 *.sqlite3
+
+# Temp/tunnel files
+cloudflared.exe
+t3_err.txt
+t3_out.txt
+tunnel_err.txt
+tunnel_out.txt
