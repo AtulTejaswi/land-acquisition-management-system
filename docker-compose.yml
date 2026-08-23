@@ -28,7 +28,7 @@ services:
       SYNC_DATABASE_URL: postgresql://nlams:nlams_secret_2024@postgres:5432/nlams_db
       SECRET_KEY: nlams-super-secret-key-change-in-production-2024-hackathon
       UPLOAD_DIR: /app/uploads
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://localhost"]'
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://localhost","http://localhost:80","http://nginx"]'
     volumes:
       - upload_data:/app/uploads
       - ./backend:/app
@@ -51,6 +51,17 @@ services:
       - backend
     environment:
       VITE_API_URL: http://localhost:8000
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
 
   adminer:
     image: adminer

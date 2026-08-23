@@ -78,3 +78,24 @@ class ObjectionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LegalNotificationUpdate(BaseModel):
+    status: Optional[str] = None
+    issued_date: Optional[datetime] = None
+    notification_number: Optional[str] = None
+    published_document_id: Optional[uuid.UUID] = None
+
+
+class PaginatedLegalNotifications(BaseModel):
+    items: List[LegalNotificationResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class PaginatedObjections(BaseModel):
+    items: List[ObjectionResponse]
+    total: int
+    page: int
+    page_size: int
