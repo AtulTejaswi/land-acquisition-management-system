@@ -26,7 +26,7 @@ export default function Login() {
         state_authority: '/state/dashboard',
         district_officer: '/district/dashboard',
         agency: '/agency/projects',
-        field_officer: '/field/surveys',
+        field_officer: '/field/home',
         citizen: '/citizen/track',
       };
       navigate(roleRoutes[user.role_name] || '/admin/dashboard');
@@ -50,7 +50,7 @@ export default function Login() {
         state_authority: '/state/dashboard',
         district_officer: '/district/dashboard',
         agency: '/agency/projects',
-        field_officer: '/field/surveys',
+        field_officer: '/field/home',
         citizen: '/citizen/track',
       };
       navigate(roleRoutes[user.role_name] || '/admin/dashboard');

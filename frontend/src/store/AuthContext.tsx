@@ -6,6 +6,7 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  switchRole: (roleName: string) => void;
   isLoading: boolean;
 }
 
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   login: async () => {},
   logout: () => {},
+  switchRole: () => {},
   isLoading: true,
 });
 
@@ -49,8 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const switchRole = (roleName: string) => {
+    if (user) {
+      const updatedUser = { ...user, role_name: roleName };
+      setUser(updatedUser);
+      localStorage.setItem('nlams_user', JSON.stringify(updatedUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, switchRole, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -14,7 +14,9 @@ export interface User {
   phone: string;
   role_name: string;
   state_id: string | null;
+  state_name: string | null;
   district_id: string | null;
+  district_name: string | null;
   agency_name: string | null;
   is_active: boolean;
 }

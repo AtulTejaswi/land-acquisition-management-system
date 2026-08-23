@@ -47,7 +47,9 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         phone=user.phone,
         role_name=user.role.name if user.role else "",
         state_id=user.state_id,
+        state_name=user.state.name if user.state else None,
         district_id=user.district_id,
+        district_name=user.district.name if user.district else None,
         agency_name=user.agency_name,
         is_active=user.is_active,
     )
@@ -92,7 +94,9 @@ async def get_me(current_user: User = Depends(get_current_user)):
         phone=current_user.phone,
         role_name=current_user.role.name if current_user.role else "",
         state_id=current_user.state_id,
+        state_name=current_user.state.name if current_user.state else None,
         district_id=current_user.district_id,
+        district_name=current_user.district.name if current_user.district else None,
         agency_name=current_user.agency_name,
         is_active=current_user.is_active,
     )

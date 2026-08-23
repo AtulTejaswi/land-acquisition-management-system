@@ -35,7 +35,9 @@ class UserResponse(BaseModel):
     phone: str
     role_name: str
     state_id: Optional[uuid.UUID] = None
+    state_name: Optional[str] = None
     district_id: Optional[uuid.UUID] = None
+    district_name: Optional[str] = None
     agency_name: Optional[str] = None
     is_active: bool
 

@@ -39,7 +39,8 @@ async def list_users(
         UserResponse(
             id=u.id, full_name=u.full_name, email=u.email, phone=u.phone,
             role_name=u.role.name if u.role else "",
-            state_id=u.state_id, district_id=u.district_id,
+            state_id=u.state_id, state_name=u.state.name if u.state else None,
+            district_id=u.district_id, district_name=u.district.name if u.district else None,
             agency_name=u.agency_name, is_active=u.is_active,
         )
         for u in users
@@ -68,7 +69,8 @@ async def create_user(
     return UserResponse(
         id=user.id, full_name=user.full_name, email=user.email, phone=user.phone,
         role_name=user.role.name if user.role else "",
-        state_id=user.state_id, district_id=user.district_id,
+        state_id=user.state_id, state_name=user.state.name if user.state else None,
+        district_id=user.district_id, district_name=user.district.name if user.district else None,
         agency_name=user.agency_name, is_active=user.is_active,
     )
 
