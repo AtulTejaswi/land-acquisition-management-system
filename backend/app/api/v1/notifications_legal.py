@@ -9,8 +9,10 @@ from app.models.legal import LegalNotification
 from app.models.user import User
 from app.core.deps import require_role, get_current_user
 from app.schemas.notification import (
-    LegalNotificationCreate, LegalNotificationUpdate,
-    LegalNotificationResponse, PaginatedLegalNotifications,
+    LegalNotificationCreate,
+    LegalNotificationUpdate,
+    LegalNotificationResponse,
+    PaginatedLegalNotifications,
 )
 
 router = APIRouter(prefix="/notifications-legal", tags=["legal-notifications"])
@@ -40,20 +42,28 @@ async def list_legal_notifications(
         count_query = count_query.where(LegalNotification.section_type == section_type)
 
     total = (await db.execute(count_query)).scalar()
-    query = query.order_by(LegalNotification.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(LegalNotification.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     result = await db.execute(query)
     items = result.scalars().all()
 
     return PaginatedLegalNotifications(
         items=[LegalNotificationResponse.model_validate(ln) for ln in items],
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
 @router.post("", response_model=LegalNotificationResponse, status_code=status.HTTP_201_CREATED)
 async def create_legal_notification(
     data: LegalNotificationCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     ln = LegalNotification(**data.model_dump())
@@ -67,7 +77,9 @@ async def create_legal_notification(
 async def update_legal_notification(
     notification_id: uuid.UUID,
     data: LegalNotificationUpdate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(

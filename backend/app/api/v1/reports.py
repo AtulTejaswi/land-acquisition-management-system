@@ -43,28 +43,40 @@ async def generate_mis_report(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "Project Name", "Status", "Priority", "Current Stage",
-        "Estimated Budget (₹)", "State", "District",
-        "Created At", "Target Completion"
-    ])
+    writer.writerow(
+        [
+            "Project Name",
+            "Status",
+            "Priority",
+            "Current Stage",
+            "Estimated Budget (₹)",
+            "State",
+            "District",
+            "Created At",
+            "Target Completion",
+        ]
+    )
 
     for p in projects:
-        writer.writerow([
-            p.name,
-            p.status.value if hasattr(p.status, 'value') else str(p.status),
-            p.priority.value if hasattr(p.priority, 'value') else str(p.priority),
-            p.current_stage,
-            float(p.estimated_budget) if p.estimated_budget else "",
-            p.state.name if p.state else "",
-            p.district.name if p.district else "",
-            p.created_at.strftime("%Y-%m-%d") if p.created_at else "",
-            p.target_completion_date.strftime("%Y-%m-%d") if p.target_completion_date else "",
-        ])
+        writer.writerow(
+            [
+                p.name,
+                p.status.value if hasattr(p.status, "value") else str(p.status),
+                p.priority.value if hasattr(p.priority, "value") else str(p.priority),
+                p.current_stage,
+                float(p.estimated_budget) if p.estimated_budget else "",
+                p.state.name if p.state else "",
+                p.district.name if p.district else "",
+                p.created_at.strftime("%Y-%m-%d") if p.created_at else "",
+                p.target_completion_date.strftime("%Y-%m-%d") if p.target_completion_date else "",
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=MIS_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"}
+        headers={
+            "Content-Disposition": f"attachment; filename=MIS_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        },
     )

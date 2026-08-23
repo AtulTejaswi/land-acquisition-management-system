@@ -26,8 +26,16 @@ class NotificationApp(Base, TimestampMixin):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(300), nullable=False)
     body = Column(Text, nullable=True)
-    type = Column(SAEnum(NotificationType, name="notification_type_enum"), default=NotificationType.info, nullable=False)
-    channel = Column(SAEnum(NotificationChannel, name="notification_channel_enum"), default=NotificationChannel.in_app, nullable=False)
+    type = Column(
+        SAEnum(NotificationType, name="notification_type_enum"),
+        default=NotificationType.info,
+        nullable=False,
+    )
+    channel = Column(
+        SAEnum(NotificationChannel, name="notification_channel_enum"),
+        default=NotificationChannel.in_app,
+        nullable=False,
+    )
     is_read = Column(Boolean, default=False, nullable=False)
     related_entity_type = Column(String(50), nullable=True)
     related_entity_id = Column(UUID(as_uuid=True), nullable=True)

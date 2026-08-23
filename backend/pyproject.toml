@@ -1,0 +1,49 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, C: mccabe, N: pep8-naming — keep core
+# Ignore noisy rules that break FastAPI / seed-data patterns:
+#  B008: Depends() in arg defaults (standard FastAPI idiom)
+#  DTZ001/DTZ005: datetime without tzinfo (seed data uses naive datetimes)
+#  I001: import sorting — auto-fixable, not a CI blocker
+#  UP045: Optional[X] vs X|None — style only
+#  RUF015: list(x)[0] vs next(iter(x)) — micro-opt, not needed
+#  FURB157: Decimal("500000") vs Decimal(500000) — readability
+#  F541: f-string without placeholder — trivial
+#  S: bandit, B: flake8-bugbear beyond B008 — too strict for demo
+ignore = [
+    "B008",
+    "DTZ001", "DTZ005",
+    "I001",
+    "UP006", "UP035", "UP045", "UP017",
+    "RUF015", "RUF022",
+    "FURB157",
+    "F541", "F401", "F841",
+    "S",
+    "B904", "B905",
+    "CPY001",
+    "D",
+    "ANN",
+    "ERA001",
+    "TD002", "TD003",
+    "ASYNC230",
+    "PERF102",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Seed script is demo data generation — allow naive datetimes, unused vars, prints
+"seed.py" = ["DTZ001", "DTZ005", "F401", "F841", "T201", "T203", "PLR2004", "S101", "S603", "S607"]
+"alembic/*" = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = false
+ignore_missing_imports = true
+disallow_untyped_defs = false

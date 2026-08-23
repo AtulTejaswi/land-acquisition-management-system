@@ -15,9 +15,18 @@ from app.models.rr import RehabilitationFamily
 from app.models.user import User
 from app.core.deps import require_role, get_current_user
 from app.schemas.compensation import (
-    CompensationCreate, CompensationUpdate, CompensationResponse, PaginatedCompensations,
-    PaymentCreate, PaymentUpdate, PaymentResponse, PaginatedPayments,
-    RRFamilyCreate, RRFamilyUpdate, RRFamilyResponse, PaginatedRRFamilies,
+    CompensationCreate,
+    CompensationUpdate,
+    CompensationResponse,
+    PaginatedCompensations,
+    PaymentCreate,
+    PaymentUpdate,
+    PaymentResponse,
+    PaginatedPayments,
+    RRFamilyCreate,
+    RRFamilyUpdate,
+    RRFamilyResponse,
+    PaginatedRRFamilies,
 )
 from app.schemas.possession import PossessionCreate, PossessionResponse
 
@@ -49,19 +58,29 @@ async def list_compensations(
         count_query = count_query.where(Compensation.status == status_filter)
 
     total = (await db.execute(count_query)).scalar()
-    query = query.order_by(Compensation.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(Compensation.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     result = await db.execute(query)
     items = result.scalars().all()
     return PaginatedCompensations(
         items=[CompensationResponse.model_validate(c) for c in items],
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
-@router.post("/compensation", response_model=CompensationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/compensation", response_model=CompensationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_compensation(
     data: CompensationCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     solatium = data.solatium or (data.market_value * 1.0 if data.market_value else 0)
@@ -86,7 +105,9 @@ async def create_compensation(
 async def update_compensation(
     comp_id: uuid.UUID,
     data: CompensationUpdate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Compensation).where(Compensation.id == comp_id))
@@ -99,7 +120,9 @@ async def update_compensation(
         setattr(comp, key, value)
 
     # Recalculate total
-    comp.total_award = (comp.market_value or 0) + (comp.solatium or 0) + (comp.additional_compensation or 0)
+    comp.total_award = (
+        (comp.market_value or 0) + (comp.solatium or 0) + (comp.additional_compensation or 0)
+    )
     await db.commit()
     await db.refresh(comp)
     return CompensationResponse.model_validate(comp)
@@ -126,19 +149,25 @@ async def list_payments(
         count_query = count_query.where(Payment.payment_status == payment_status)
 
     total = (await db.execute(count_query)).scalar()
-    query = query.order_by(Payment.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(Payment.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    )
     result = await db.execute(query)
     items = result.scalars().all()
     return PaginatedPayments(
         items=[PaymentResponse.model_validate(p) for p in items],
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
 @router.post("/payments", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 async def create_payment(
     data: PaymentCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     payment = Payment(
@@ -157,7 +186,9 @@ async def create_payment(
 async def update_payment(
     payment_id: uuid.UUID,
     data: PaymentUpdate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Payment).where(Payment.id == payment_id))
@@ -190,7 +221,9 @@ async def list_possessions(
 @router.post("/possession", response_model=PossessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_possession(
     data: PossessionCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     pos = Possession(
@@ -223,19 +256,27 @@ async def list_rr_families(
         count_query = count_query.where(RehabilitationFamily.project_id == project_id)
 
     total = (await db.execute(count_query)).scalar()
-    query = query.order_by(RehabilitationFamily.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(RehabilitationFamily.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     result = await db.execute(query)
     items = result.scalars().all()
     return PaginatedRRFamilies(
         items=[RRFamilyResponse.model_validate(f) for f in items],
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
 @router.post("/rr/families", response_model=RRFamilyResponse, status_code=status.HTTP_201_CREATED)
 async def create_rr_family(
     data: RRFamilyCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     family = RehabilitationFamily(**data.model_dump())
@@ -249,10 +290,14 @@ async def create_rr_family(
 async def update_rr_family(
     family_id: uuid.UUID,
     data: RRFamilyUpdate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(RehabilitationFamily).where(RehabilitationFamily.id == family_id))
+    result = await db.execute(
+        select(RehabilitationFamily).where(RehabilitationFamily.id == family_id)
+    )
     family = result.scalar_one_or_none()
     if not family:
         raise HTTPException(status_code=404, detail="RR Family not found")

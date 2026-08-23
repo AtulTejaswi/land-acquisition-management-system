@@ -1,5 +1,15 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Numeric, ForeignKey, Enum as SAEnum, Text, DateTime, func
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Numeric,
+    ForeignKey,
+    Enum as SAEnum,
+    Text,
+    DateTime,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from app.db.base import Base, TimestampMixin, SoftDeleteMixin
@@ -32,11 +42,20 @@ class MilestoneStatus(str, enum.Enum):
 
 
 STAGES = [
-    "project_proposal", "dpr_upload", "land_requirement", "state_review",
-    "district_verification", "gis_mapping", "legal_notification",
-    "objection_handling", "compensation_assessment", "award_declaration",
-    "payment_disbursement", "physical_possession", "rehabilitation_resettlement",
-    "project_completion"
+    "project_proposal",
+    "dpr_upload",
+    "land_requirement",
+    "state_review",
+    "district_verification",
+    "gis_mapping",
+    "legal_notification",
+    "objection_handling",
+    "compensation_assessment",
+    "award_declaration",
+    "payment_disbursement",
+    "physical_possession",
+    "rehabilitation_resettlement",
+    "project_completion",
 ]
 
 
@@ -64,18 +83,33 @@ class Project(Base, TimestampMixin, SoftDeleteMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(500), nullable=False)
-    ministry_id = Column(UUID(as_uuid=True), ForeignKey("ministries.id"), nullable=False, index=True)
-    category_id = Column(UUID(as_uuid=True), ForeignKey("project_categories.id"), nullable=False, index=True)
-    implementing_agency_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    ministry_id = Column(
+        UUID(as_uuid=True), ForeignKey("ministries.id"), nullable=False, index=True
+    )
+    category_id = Column(
+        UUID(as_uuid=True), ForeignKey("project_categories.id"), nullable=False, index=True
+    )
+    implementing_agency_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
     state_id = Column(UUID(as_uuid=True), ForeignKey("states.id"), nullable=False, index=True)
     district_id = Column(UUID(as_uuid=True), ForeignKey("districts.id"), nullable=True, index=True)
     description = Column(Text, nullable=True)
     dpr_document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=True)
     estimated_budget = Column(Numeric(18, 2), nullable=True)
     estimated_land_required_hectares = Column(Numeric(12, 3), nullable=True)
-    priority = Column(SAEnum(ProjectPriority, name="project_priority_enum"), default=ProjectPriority.medium, nullable=False)
+    priority = Column(
+        SAEnum(ProjectPriority, name="project_priority_enum"),
+        default=ProjectPriority.medium,
+        nullable=False,
+    )
     current_stage = Column(String(50), default="project_proposal", nullable=False, index=True)
-    status = Column(SAEnum(ProjectStatus, name="project_status_enum"), default=ProjectStatus.draft, nullable=False, index=True)
+    status = Column(
+        SAEnum(ProjectStatus, name="project_status_enum"),
+        default=ProjectStatus.draft,
+        nullable=False,
+        index=True,
+    )
     start_date = Column(DateTime(timezone=True), nullable=True)
     target_completion_date = Column(DateTime(timezone=True), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
@@ -92,12 +126,21 @@ class Milestone(Base, TimestampMixin):
     __tablename__ = "milestones"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     stage = Column(String(50), nullable=False)
     title = Column(String(300), nullable=False)
     planned_date = Column(DateTime(timezone=True), nullable=True)
     actual_date = Column(DateTime(timezone=True), nullable=True)
-    status = Column(SAEnum(MilestoneStatus, name="milestone_status_enum"), default=MilestoneStatus.pending, nullable=False)
+    status = Column(
+        SAEnum(MilestoneStatus, name="milestone_status_enum"),
+        default=MilestoneStatus.pending,
+        nullable=False,
+    )
     responsible_officer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     remarks = Column(Text, nullable=True)
 

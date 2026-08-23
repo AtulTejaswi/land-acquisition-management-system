@@ -3,9 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api.v1 import (
-    auth, projects, parcels, gis, compensation, documents,
-    notifications, dashboard, reports, surveys, users, ai_routes,
-    notifications_legal, objections,
+    auth,
+    projects,
+    parcels,
+    gis,
+    compensation,
+    documents,
+    notifications,
+    dashboard,
+    reports,
+    surveys,
+    users,
+    ai_routes,
+    notifications_legal,
+    objections,
 )
 import os
 

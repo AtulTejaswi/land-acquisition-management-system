@@ -24,4 +24,6 @@ class TimestampMixin:
 
 
 class SoftDeleteMixin:
-    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )

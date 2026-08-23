@@ -9,8 +9,10 @@ from app.models.legal import Objection
 from app.models.user import User
 from app.core.deps import require_role, get_current_user
 from app.schemas.notification import (
-    ObjectionCreate, ObjectionUpdate,
-    ObjectionResponse, PaginatedObjections,
+    ObjectionCreate,
+    ObjectionUpdate,
+    ObjectionResponse,
+    PaginatedObjections,
 )
 
 router = APIRouter(prefix="/objections", tags=["objections"])
@@ -36,13 +38,17 @@ async def list_objections(
         count_query = count_query.where(Objection.status == status_filter)
 
     total = (await db.execute(count_query)).scalar()
-    query = query.order_by(Objection.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(Objection.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    )
     result = await db.execute(query)
     items = result.scalars().all()
 
     return PaginatedObjections(
         items=[ObjectionResponse.model_validate(o) for o in items],
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
@@ -63,12 +69,12 @@ async def create_objection(
 async def update_objection(
     objection_id: uuid.UUID,
     data: ObjectionUpdate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Objection).where(Objection.id == objection_id)
-    )
+    result = await db.execute(select(Objection).where(Objection.id == objection_id))
     objection = result.scalar_one_or_none()
     if not objection:
         raise HTTPException(status_code=404, detail="Objection not found")

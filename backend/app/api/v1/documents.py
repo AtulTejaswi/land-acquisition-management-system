@@ -39,13 +39,17 @@ async def list_documents(
         count_query = count_query.where(Document.doc_type == doc_type)
 
     total = (await db.execute(count_query)).scalar()
-    query = query.order_by(Document.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(Document.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    )
     result = await db.execute(query)
     items = result.scalars().all()
 
     return PaginatedDocuments(
         items=[DocumentResponse.model_validate(d) for d in items],
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 

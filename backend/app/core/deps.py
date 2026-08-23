@@ -19,14 +19,22 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     payload = decode_token(credentials.credentials)
     if not payload or payload.get("type") != "access":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
+        )
     user_id = payload.get("sub")
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
-    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id), User.is_active == True))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
+        )
+    result = await db.execute(
+        select(User).where(User.id == uuid.UUID(user_id), User.is_active == True)
+    )
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive"
+        )
     return user
 
 
@@ -38,6 +46,7 @@ def require_role(allowed_roles: List[str]):
                 detail=f"Role '{current_user.role_name}' not authorized. Required: {allowed_roles}",
             )
         return current_user
+
     return role_checker
 
 

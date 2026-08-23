@@ -11,8 +11,12 @@ from app.models.state import Village, District, State
 from app.models.user import User
 from app.core.deps import require_role, get_current_user
 from app.schemas.parcel import (
-    ParcelCreate, ParcelUpdate, ParcelResponse, PaginatedParcels,
-    LandOwnerCreate, LandOwnerResponse
+    ParcelCreate,
+    ParcelUpdate,
+    ParcelResponse,
+    PaginatedParcels,
+    LandOwnerCreate,
+    LandOwnerResponse,
 )
 
 router = APIRouter(prefix="/parcels", tags=["parcels"])
@@ -20,24 +24,40 @@ router = APIRouter(prefix="/parcels", tags=["parcels"])
 
 def parcel_to_response(p: LandParcel) -> ParcelResponse:
     return ParcelResponse(
-        id=p.id, project_id=p.project_id,
+        id=p.id,
+        project_id=p.project_id,
         survey_number=p.survey_number,
-        village_id=p.village_id, district_id=p.district_id, state_id=p.state_id,
+        village_id=p.village_id,
+        district_id=p.district_id,
+        state_id=p.state_id,
         area_hectares=float(p.area_hectares) if p.area_hectares else None,
-        land_type=p.land_type.value if hasattr(p.land_type, 'value') else str(p.land_type),
-        ownership_status=p.ownership_status.value if hasattr(p.ownership_status, 'value') else str(p.ownership_status),
-        verification_status=p.verification_status.value if hasattr(p.verification_status, 'value') else str(p.verification_status),
-        created_at=p.created_at, updated_at=p.updated_at,
+        land_type=p.land_type.value if hasattr(p.land_type, "value") else str(p.land_type),
+        ownership_status=p.ownership_status.value
+        if hasattr(p.ownership_status, "value")
+        else str(p.ownership_status),
+        verification_status=p.verification_status.value
+        if hasattr(p.verification_status, "value")
+        else str(p.verification_status),
+        created_at=p.created_at,
+        updated_at=p.updated_at,
         village_name=p.village.name if p.village else None,
         district_name=p.district.name if p.district else None,
         state_name=p.state.name if p.state else None,
-        owners=[LandOwnerResponse(
-            id=o.id, parcel_id=o.parcel_id, full_name=o.full_name,
-            aadhaar_masked=o.aadhaar_masked, phone=o.phone, email=o.email,
-            bank_account_masked=o.bank_account_masked, ifsc=o.ifsc,
-            share_percentage=float(o.share_percentage) if o.share_percentage else None,
-            user_id=o.user_id,
-        ) for o in (p.owners if p.owners else [])],
+        owners=[
+            LandOwnerResponse(
+                id=o.id,
+                parcel_id=o.parcel_id,
+                full_name=o.full_name,
+                aadhaar_masked=o.aadhaar_masked,
+                phone=o.phone,
+                email=o.email,
+                bank_account_masked=o.bank_account_masked,
+                ifsc=o.ifsc,
+                share_percentage=float(o.share_percentage) if o.share_percentage else None,
+                user_id=o.user_id,
+            )
+            for o in (p.owners if p.owners else [])
+        ],
     )
 
 
@@ -85,12 +105,16 @@ async def list_parcels(
     total_result = await db.execute(count_query)
     total = total_result.scalar()
 
-    query = query.options(
-        selectinload(LandParcel.village),
-        selectinload(LandParcel.district),
-        selectinload(LandParcel.state),
-        selectinload(LandParcel.owners),
-    ).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.options(
+            selectinload(LandParcel.village),
+            selectinload(LandParcel.district),
+            selectinload(LandParcel.state),
+            selectinload(LandParcel.owners),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
 
     result = await db.execute(query)
     parcels = result.scalars().unique().all()
@@ -102,7 +126,9 @@ async def list_parcels(
 @router.post("", response_model=ParcelResponse, status_code=status.HTTP_201_CREATED)
 async def create_parcel(
     data: ParcelCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer", "agency"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer", "agency"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     parcel = LandParcel(
@@ -129,7 +155,9 @@ async def get_parcel(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(LandParcel).where(LandParcel.id == parcel_id, LandParcel.is_deleted == False).options(
+        select(LandParcel)
+        .where(LandParcel.id == parcel_id, LandParcel.is_deleted == False)
+        .options(
             selectinload(LandParcel.village),
             selectinload(LandParcel.district),
             selectinload(LandParcel.state),
@@ -146,7 +174,9 @@ async def get_parcel(
 async def update_parcel(
     parcel_id: uuid.UUID,
     data: ParcelUpdate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -175,11 +205,15 @@ async def list_owners(
     return result.scalars().all()
 
 
-@router.post("/{parcel_id}/owners", response_model=LandOwnerResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{parcel_id}/owners", response_model=LandOwnerResponse, status_code=status.HTTP_201_CREATED
+)
 async def add_owner(
     parcel_id: uuid.UUID,
     data: LandOwnerCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     owner = LandOwner(

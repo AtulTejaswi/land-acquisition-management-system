@@ -113,6 +113,7 @@ class MinistryResponse(BaseModel):
     id: uuid.UUID
     name: str
     code: str
+
     class Config:
         from_attributes = True
 
@@ -120,5 +121,6 @@ class MinistryResponse(BaseModel):
 class CategoryResponse(BaseModel):
     id: uuid.UUID
     name: str
+
     class Config:
         from_attributes = True

@@ -33,11 +33,25 @@ class RehabilitationFamily(Base, TimestampMixin):
     family_head_name = Column(String(200), nullable=False)
     family_id_number = Column(String(50), nullable=True)
     member_count = Column(Integer, nullable=True)
-    displaced_status = Column(SAEnum(DisplacedStatus, name="displaced_status_enum"), default=DisplacedStatus.not_displaced, nullable=False)
-    housing_benefit_status = Column(SAEnum(BenefitStatus, name="rr_housing_benefit_enum"), default=BenefitStatus.not_started, nullable=False)
-    employment_benefit_status = Column(SAEnum(BenefitStatus, name="rr_employment_benefit_enum"), default=BenefitStatus.not_started, nullable=False)
+    displaced_status = Column(
+        SAEnum(DisplacedStatus, name="displaced_status_enum"),
+        default=DisplacedStatus.not_displaced,
+        nullable=False,
+    )
+    housing_benefit_status = Column(
+        SAEnum(BenefitStatus, name="rr_housing_benefit_enum"),
+        default=BenefitStatus.not_started,
+        nullable=False,
+    )
+    employment_benefit_status = Column(
+        SAEnum(BenefitStatus, name="rr_employment_benefit_enum"),
+        default=BenefitStatus.not_started,
+        nullable=False,
+    )
     monetary_benefit_amount = Column(Numeric(18, 2), nullable=True)
-    current_stage = Column(SAEnum(RRStage, name="rr_stage_enum"), default=RRStage.identification, nullable=False)
+    current_stage = Column(
+        SAEnum(RRStage, name="rr_stage_enum"), default=RRStage.identification, nullable=False
+    )
     progress_percentage = Column(Integer, default=0)
 
     project = relationship("Project", foreign_keys=[project_id])

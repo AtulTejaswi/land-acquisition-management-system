@@ -11,9 +11,13 @@ from app.models.legal import LegalNotification, Objection
 from app.models.user import User
 from app.core.deps import require_role, get_current_user
 from app.schemas.notification import (
-    NotificationResponse, PaginatedNotifications,
-    LegalNotificationCreate, LegalNotificationResponse,
-    ObjectionCreate, ObjectionUpdate, ObjectionResponse,
+    NotificationResponse,
+    PaginatedNotifications,
+    LegalNotificationCreate,
+    LegalNotificationResponse,
+    ObjectionCreate,
+    ObjectionUpdate,
+    ObjectionResponse,
 )
 
 router = APIRouter(tags=["notifications"])
@@ -29,20 +33,28 @@ async def list_notifications(
     db: AsyncSession = Depends(get_db),
 ):
     query = select(NotificationApp).where(NotificationApp.user_id == current_user.id)
-    count_query = select(func.count(NotificationApp.id)).where(NotificationApp.user_id == current_user.id)
+    count_query = select(func.count(NotificationApp.id)).where(
+        NotificationApp.user_id == current_user.id
+    )
 
     if is_read is not None:
         query = query.where(NotificationApp.is_read == is_read)
         count_query = count_query.where(NotificationApp.is_read == is_read)
 
     total = (await db.execute(count_query)).scalar()
-    query = query.order_by(NotificationApp.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        query.order_by(NotificationApp.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     result = await db.execute(query)
     items = result.scalars().all()
 
     return PaginatedNotifications(
         items=[NotificationResponse.model_validate(n) for n in items],
-        total=total, page=page, page_size=page_size,
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
@@ -80,10 +92,16 @@ async def list_legal_notifications(
     return [LegalNotificationResponse.model_validate(ln) for ln in result.scalars().all()]
 
 
-@router.post("/notifications-legal", response_model=LegalNotificationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/notifications-legal",
+    response_model=LegalNotificationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_legal_notification(
     data: LegalNotificationCreate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     ln = LegalNotification(**data.model_dump())
@@ -130,7 +148,9 @@ async def create_objection(
 async def update_objection(
     objection_id: uuid.UUID,
     data: ObjectionUpdate,
-    current_user: User = Depends(require_role(["super_admin", "state_authority", "district_officer"])),
+    current_user: User = Depends(
+        require_role(["super_admin", "state_authority", "district_officer"])
+    ),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Objection).where(Objection.id == objection_id))

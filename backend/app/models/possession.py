@@ -15,10 +15,16 @@ class Possession(Base, TimestampMixin):
     __tablename__ = "possession"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    parcel_id = Column(UUID(as_uuid=True), ForeignKey("land_parcels.id"), nullable=False, index=True)
+    parcel_id = Column(
+        UUID(as_uuid=True), ForeignKey("land_parcels.id"), nullable=False, index=True
+    )
     possession_date = Column(DateTime(timezone=True), nullable=True)
     taken_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    possession_type = Column(SAEnum(PossessionType, name="possession_type_enum"), default=PossessionType.physical, nullable=False)
+    possession_type = Column(
+        SAEnum(PossessionType, name="possession_type_enum"),
+        default=PossessionType.physical,
+        nullable=False,
+    )
     remarks = Column(Text, nullable=True)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=True)
 

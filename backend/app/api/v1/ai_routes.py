@@ -40,7 +40,11 @@ async def delay_prediction(
     completed_count = 0
 
     for ms in milestones:
-        if ms.status.value == "completed" if hasattr(ms.status, 'value') else ms.status == "completed":
+        if (
+            ms.status.value == "completed"
+            if hasattr(ms.status, "value")
+            else ms.status == "completed"
+        ):
             completed_count += 1
             if ms.planned_date and ms.actual_date:
                 diff = (ms.actual_date - ms.planned_date).days
@@ -92,39 +96,57 @@ async def risk_score(
 
     # Open objections
     obj_result = await db.execute(
-        select(func.count(Objection.id)).where(Objection.parcel_id.in_(
-            select(LandParcel.id).where(LandParcel.project_id == project_id)
-        ), Objection.status.in_(["filed", "under_review"]))
+        select(func.count(Objection.id)).where(
+            Objection.parcel_id.in_(
+                select(LandParcel.id).where(LandParcel.project_id == project_id)
+            ),
+            Objection.status.in_(["filed", "under_review"]),
+        )
     )
     open_objections = obj_result.scalar() or 0
 
     # Disputed parcels
-    disputed = (await db.execute(
-        select(func.count(LandParcel.id)).where(
-            LandParcel.project_id == project_id,
-            LandParcel.verification_status == "disputed"
+    disputed = (
+        await db.execute(
+            select(func.count(LandParcel.id)).where(
+                LandParcel.project_id == project_id, LandParcel.verification_status == "disputed"
+            )
         )
-    )).scalar() or 0
+    ).scalar() or 0
 
-    total_parcels = (await db.execute(
-        select(func.count(LandParcel.id)).where(LandParcel.project_id == project_id)
-    )).scalar() or 1
+    total_parcels = (
+        await db.execute(
+            select(func.count(LandParcel.id)).where(LandParcel.project_id == project_id)
+        )
+    ).scalar() or 1
 
     # Last milestone update
-    last_ms = (await db.execute(
-        select(Milestone).where(Milestone.project_id == project_id).order_by(Milestone.updated_at.desc())
-    )).scalar_one_or_none()
+    last_ms = (
+        await db.execute(
+            select(Milestone)
+            .where(Milestone.project_id == project_id)
+            .order_by(Milestone.updated_at.desc())
+        )
+    ).scalar_one_or_none()
 
     days_since_update = 0
     if last_ms and last_ms.updated_at:
-        days_since_update = (datetime.now(timezone.utc) - last_ms.updated_at.replace(tzinfo=timezone.utc)).days
+        days_since_update = (
+            datetime.now(timezone.utc) - last_ms.updated_at.replace(tzinfo=timezone.utc)
+        ).days
 
     # Score calculation
     score = 0
     score += min(open_objections * 10, 30)  # Max 30 for objections
     score += min((disputed / total_parcels) * 30, 30)  # Max 30 for disputes
     score += min(days_since_update * 2, 20)  # Max 20 for staleness
-    score += (20 if project.status.value == "delayed" else 10 if project.status.value == "under_review" else 0)  # Status factor
+    score += (
+        20
+        if project.status.value == "delayed"
+        else 10
+        if project.status.value == "under_review"
+        else 0
+    )  # Status factor
     score = min(int(score), 100)
 
     if score >= 70:
@@ -147,7 +169,9 @@ async def risk_score(
             "disputed_parcels": disputed,
             "total_parcels": total_parcels,
             "days_since_last_update": days_since_update,
-            "current_status": project.status.value if hasattr(project.status, 'value') else str(project.status),
+            "current_status": project.status.value
+            if hasattr(project.status, "value")
+            else str(project.status),
         },
         "badge": "AI Insights • Beta",
     }
@@ -177,8 +201,12 @@ async def compensation_estimate(
     else:
         # Default rates per hectare (₹)
         defaults = {
-            "agricultural": 500000, "residential": 2000000, "commercial": 5000000,
-            "forest": 100000, "govt": 0, "other": 300000
+            "agricultural": 500000,
+            "residential": 2000000,
+            "commercial": 5000000,
+            "forest": 100000,
+            "govt": 0,
+            "other": 300000,
         }
         base_value = defaults.get(land_type, 300000) * area_hectares
 
@@ -236,6 +264,8 @@ async def missing_documents(
         "current_stage": project.current_stage,
         "uploaded_doc_types": list(uploaded),
         "missing_documents": gaps,
-        "completeness_pct": round((len(required_for_stage) - len(gaps)) / max(len(required_for_stage), 1) * 100, 1),
+        "completeness_pct": round(
+            (len(required_for_stage) - len(gaps)) / max(len(required_for_stage), 1) * 100, 1
+        ),
         "badge": "AI Insights • Beta",
     }

@@ -4,12 +4,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
 from app.models.user import User, Role
-from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token
+from app.core.security import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 from app.core.deps import get_current_user
 from app.schemas.auth import (
-    LoginRequest, TokenResponse, RefreshRequest,
-    ForgotPasswordRequest, ForgotPasswordResponse, UserResponse,
-    UserCreate, UserUpdate
+    LoginRequest,
+    TokenResponse,
+    RefreshRequest,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    UserResponse,
+    UserCreate,
+    UserUpdate,
 )
 import uuid
 import random
@@ -25,7 +36,9 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     )
     user = result.scalar_one_or_none()
     if not user or not verify_password(request.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
+        )
 
     # Update last login
     user.last_login_at = datetime.now(timezone.utc)
@@ -65,10 +78,14 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 async def refresh_token(request: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(request.refresh_token)
     if not payload or payload.get("type") != "refresh":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
 
     user_id = payload.get("sub")
-    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id), User.is_active == True))
+    result = await db.execute(
+        select(User).where(User.id == uuid.UUID(user_id), User.is_active == True)
+    )
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
