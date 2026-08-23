@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: nlams_db
+      POSTGRES_USER: nlams
+      POSTGRES_PASSWORD: nlams_secret_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nlams -d nlams_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nlams:nlams_secret_2024@postgres:5432/nlams_db
+      SYNC_DATABASE_URL: postgresql://nlams:nlams_secret_2024@postgres:5432/nlams_db
+      SECRET_KEY: nlams-super-secret-key-change-in-production-2024-hackathon
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://localhost"]'
+    volumes:
+      - upload_data:/app/uploads
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8000
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  upload_data:
