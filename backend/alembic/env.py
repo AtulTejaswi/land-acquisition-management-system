@@ -10,7 +10,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app.db.base import Base
 from app.models import *  # Import all models to register them
 
+import os
+
 config = context.config
+
+# Override sqlalchemy.url from environment variable (for CI and Docker)
+sync_db_url = os.environ.get("SYNC_DATABASE_URL") or os.environ.get("DATABASE_URL", "")
+# Convert async URL to sync if needed
+if sync_db_url.startswith("postgresql+asyncpg://"):
+    sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+if sync_db_url:
+    config.set_main_option("sqlalchemy.url", sync_db_url)
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 

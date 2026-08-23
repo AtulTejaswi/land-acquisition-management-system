@@ -36,6 +36,7 @@ ignore = [
 # Seed script is demo data generation — allow naive datetimes, unused vars, prints
 "seed.py" = ["DTZ001", "DTZ005", "F401", "F841", "T201", "T203", "PLR2004", "S101", "S603", "S607"]
 "alembic/*" = ["ALL"]
+"tests/*" = ["BLE001", "S101"]
 
 [tool.ruff.format]
 quote-style = "double"
