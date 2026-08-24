@@ -50,7 +50,19 @@
 
 ## D13: Frontend Component Organization
 **Decision:** Create spec-mandated component folders (`components/gis/`, `components/dashboard/`, `components/compensation/`, `components/rr/`, `components/documents/`, `components/notifications/`) with barrel exports.
-**Rationale:** Per spec Section 7.1 folder structure. Currently placeholder barrels — the actual components are still inline in pages. This establishes the directory structure for future extraction as the codebase grows.
+**Rationale:** Per spec Section 7.1 folder structure. Components were extracted where genuinely reused across pages; folders with no repeated UI pattern retain only the barrel.
+
+## D15: Component Extraction — What Was Extracted vs. Left Inline
+**Decision:** Extract shared UI into reusable components only where the same rendering logic appears in 2+ pages. Do not force extraction where a pattern is only used once.
+**Extracted:**
+- `dashboard/TrendChart.tsx` + `HeatmapIndia.tsx` — pulled from `NationalDashboard.tsx` (chart rendering and state progress grid are self-contained, reusable on state/district dashboards)
+- `gis/ParcelLayer.tsx` — pulled from `GISMapPage.tsx` (MapLibre layer management is a self-contained headless component that any map page can use)
+- `notifications/NotificationItem.tsx` — pulled from `NotificationsPage.tsx` (individual notification card rendering, reusable if notification center is added to sidebar)
+- `rr/StageProgress.tsx` + `BenefitTracker.tsx` — pulled from `MyRR.tsx` (stage stepper and benefit badges are shared with `RRManagement.tsx` table columns)
+- `documents/DocList.tsx` — pulled from citizen and agency `MyDocuments.tsx` (identical document list rendering, differing only in empty state text and file size display)
+**Left inline:**
+- `compensation/` — CompensationDesk (district) and MyCompensation (citizen) have fundamentally different UIs (DataTable with actions vs. summary cards + simple list). No genuinely shared rendering exists.
+- `components/compensation/` remains a barrel-only folder since there is no cross-page duplication to extract.
 
 ## D14: District Officer Full Workflow Pages
 **Decision:** Replace generic placeholder routes (ReportsPage for compensation, ProjectList for verification) with real domain-specific pages: `CompensationDesk.tsx`, `VerificationQueue.tsx`, `ParcelVerification.tsx`, `RRManagement.tsx`.

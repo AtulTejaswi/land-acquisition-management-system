@@ -105,7 +105,7 @@ nlams/
 │   │   ├── utils/         # Storage service, helpers
 │   │   │   └── storage.py
 │   │   └── main.py        # FastAPI app + router registration
-│   ├── tests/             # pytest tests (28 passing)
+│   ├── tests/             # pytest tests (34 passing)
 │   ├── app/seed.py        # Database seeder (canonical)
 │   └── requirements.txt
 ├── frontend/              # React frontend
@@ -116,12 +116,11 @@ nlams/
 │   │   │   ├── layout/    # Sidebar, Topbar, RoleShell
 │   │   │   ├── shared/    # DataTable, KPICard, StatusBadge, etc.
 │   │   │   ├── project/   # StageStepper
-│   │   │   ├── gis/       # GIS components (barrel)
-│   │   │   ├── dashboard/ # Dashboard components (barrel)
-│   │   │   ├── compensation/ # Compensation components (barrel)
-│   │   │   ├── rr/        # R&R components (barrel)
-│   │   │   ├── documents/ # Document components (barrel)
-│   │   │   ├── notifications/ # Notification components (barrel)
+│   │   │   ├── gis/       # ParcelLayer
+│   │   │   ├── dashboard/ # TrendChart, HeatmapIndia
+│   │   │   ├── rr/        # StageProgress, BenefitTracker
+│   │   │   ├── documents/ # DocList
+│   │   │   ├── notifications/ # NotificationItem
 │   │   │   └── toast/     # Toast notification system
 │   │   ├── pages/         # Page components by role (25+ pages)
 │   │   │   ├── auth/      # Login, ForgotPassword
@@ -155,7 +154,7 @@ nlams/
 8. **Citizen Transparency Portal** — Track status, compensation, R&R, and documents
 9. **Mobile Field Officer** — GPS capture, photo upload, bottom tab bar navigation
 10. **Audit Trail** — Complete timeline of all stage changes with officer names and timestamps
-11. **MIS Report Export** — One-click CSV download
+11. **Report Exports** — One-click CSV download for Project MIS, Compensation, and GIS Parcel reports
 12. **Role-Switch Demo Mode** — Quick account switcher for demos
 13. **Forgot Password** — Mock OTP flow (Sandbox/Demo Mode)
 

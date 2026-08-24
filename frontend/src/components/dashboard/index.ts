@@ -1,3 +1,2 @@
-// Dashboard components - extracted from NationalDashboard for reuse
-// TrendChart, HeatmapIndia, TimelineGraph would go here
-export {};
+export { TrendChart } from './TrendChart';
+export { HeatmapIndia } from './HeatmapIndia';

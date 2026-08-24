@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { formatCurrency } from '../../lib/utils';
+import { ParcelLayer } from '../../components/gis/ParcelLayer';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -57,87 +57,6 @@ export default function GISMapPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!mapRef.current || !geojsonData || !mapLoaded) return;
-    const map = mapRef.current;
-    const ml = maplibregl;
-
-    // Remove old layers
-    if (map.getLayer('parcels-fill')) map.removeLayer('parcels-fill');
-    if (map.getLayer('parcels-outline')) map.removeLayer('parcels-outline');
-    if (map.getSource('parcels')) map.removeSource('parcels');
-
-    if (geojsonData.features?.length === 0) return;
-
-    map.addSource('parcels', {
-      type: 'geojson',
-      data: geojsonData,
-    });
-
-    // Fill layer colored by verification_status
-    map.addLayer({
-      id: 'parcels-fill',
-      type: 'fill',
-      source: 'parcels',
-      paint: {
-        'fill-color': [
-          'match',
-          ['get', 'verification_status'],
-          'pending', VERIFICATION_COLORS.pending,
-          'verified', VERIFICATION_COLORS.verified,
-          'disputed', VERIFICATION_COLORS.disputed,
-          'acquired', VERIFICATION_COLORS.acquired,
-          '#94A3B8',
-        ],
-        'fill-opacity': 0.4,
-      },
-    });
-
-    // Outline layer
-    map.addLayer({
-      id: 'parcels-outline',
-      type: 'line',
-      source: 'parcels',
-      paint: {
-        'line-color': [
-          'match',
-          ['get', 'verification_status'],
-          'pending', VERIFICATION_COLORS.pending,
-          'verified', VERIFICATION_COLORS.verified,
-          'disputed', VERIFICATION_COLORS.disputed,
-          'acquired', VERIFICATION_COLORS.acquired,
-          '#94A3B8',
-        ],
-        'line-width': 2,
-      },
-    });
-
-    // Click handler
-    map.on('click', 'parcels-fill', (e: any) => {
-      if (e.features?.length > 0) {
-        setSelectedParcel(e.features[0].properties);
-      }
-    });
-
-    // Fit bounds to features
-    if (geojsonData.features.length > 0) {
-      const coords = [];
-      for (const f of geojsonData.features) {
-        if (f.geometry?.coordinates) {
-          const ring = f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : [];
-          coords.push(...ring);
-        }
-      }
-      if (coords.length > 0) {
-        const bounds = coords.reduce(
-          (b, c) => b.extend(c),
-          new ml.LngLatBounds(coords[0], coords[0])
-        );
-        map.fitBounds(bounds, { padding: 50 });
-      }
-    }
-  }, [geojsonData, mapLoaded]);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -146,7 +65,9 @@ export default function GISMapPage() {
           <p className="text-slate-500 text-sm">Visualize land parcels on interactive map</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">Import GeoJSON</Button>
+          <Button variant="outline" size="sm">
+            Import GeoJSON
+          </Button>
           <Button size="sm">+ Draw Parcel</Button>
         </div>
       </div>
@@ -165,6 +86,12 @@ export default function GISMapPage() {
         {/* Map */}
         <div className="flex-1 rounded-xl overflow-hidden border border-slate-200">
           <div ref={mapContainer} className="w-full h-full" />
+          <ParcelLayer
+            map={mapRef.current}
+            geojsonData={geojsonData}
+            mapLoaded={mapLoaded}
+            onSelectParcel={setSelectedParcel}
+          />
         </div>
 
         {/* Side drawer */}
@@ -173,7 +100,12 @@ export default function GISMapPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Parcel Details</CardTitle>
-                <button onClick={() => setSelectedParcel(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+                <button
+                  onClick={() => setSelectedParcel(null)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  ✕
+                </button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -187,21 +119,31 @@ export default function GISMapPage() {
               </div>
               <div>
                 <span className="text-slate-500">Village:</span>
-                <span className="font-medium ml-1">{selectedParcel.village_name || '—'}</span>
+                <span className="font-medium ml-1">
+                  {selectedParcel.village_name || '—'}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">District:</span>
-                <span className="font-medium ml-1">{selectedParcel.district_name || '—'}</span>
+                <span className="font-medium ml-1">
+                  {selectedParcel.district_name || '—'}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Land Type:</span>
-                <span className="font-medium ml-1 capitalize">{selectedParcel.land_type}</span>
+                <span className="font-medium ml-1 capitalize">
+                  {selectedParcel.land_type}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500">Status:</span>
-                <span className="font-medium ml-1 capitalize">{selectedParcel.verification_status}</span>
+                <span className="font-medium ml-1 capitalize">
+                  {selectedParcel.verification_status}
+                </span>
               </div>
-              <Button variant="outline" size="sm" className="w-full mt-2">View Documents</Button>
+              <Button variant="outline" size="sm" className="w-full mt-2">
+                View Documents
+              </Button>
             </CardContent>
           </Card>
         )}
