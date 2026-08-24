@@ -67,3 +67,12 @@
 ## D14: District Officer Full Workflow Pages
 **Decision:** Replace generic placeholder routes (ReportsPage for compensation, ProjectList for verification) with real domain-specific pages: `CompensationDesk.tsx`, `VerificationQueue.tsx`, `ParcelVerification.tsx`, `RRManagement.tsx`.
 **Rationale:** The spec Section 7.1 explicitly requires dedicated district pages for verification queue, parcel verification, and compensation desk. Previous implementation reused generic components which provided no real workflow functionality.
+
+## D16: Backend Security Hardening
+**Decision:** Remove hardcoded SECRET_KEY fallback, add rate limiting on auth endpoints, and validate file uploads.
+**Changes:**
+1. **SECRET_KEY enforcement** (`config.py`): Removed the hardcoded default `"nlams-super-secret-key-change-in-production-2024-hackathon"`. The app now raises `ValueError` at startup if `SECRET_KEY` is empty and `ENVIRONMENT=production`. In development mode, an ephemeral key is auto-generated with a warning log. Added 4 tests confirming the behavior.
+2. **Rate limiting** (`auth.py`): Added `slowapi` (v0.1.9) with `Limiter(key_func=get_remote_address)`. Applied `@limiter.limit("5/minute")` to `/auth/login` and `@limiter.limit("3/minute")` to `/auth/forgot-password`. Returns 429 Too Many Requests when exceeded. The `Request` parameter must be the first argument per slowapi convention.
+3. **File upload validation** (`documents.py`): Added `MAX_UPLOAD_SIZE = 25MB` check and `ALLOWED_MIME_TYPES` / `ALLOWED_EXTENSIONS` allowlists (PDF, JPEG, PNG, GIF, DOC, DOCX, XLS, XLSX, CSV, GeoJSON). Returns 400 with descriptive error messages for violations. Extension and MIME type are both checked (defense in depth).
+4. **SQL injection spot-check**: Verified no raw SQL string concatenation exists. All database access uses SQLAlchemy ORM query builders. The only `text()` usage is in `seed.py` for `CREATE EXTENSION` with hardcoded strings (no user input).
+5. **Test infrastructure**: Enhanced `conftest.py` with role-specific authenticated client fixtures (`super_admin_client`, `citizen_client`, etc.) using `_make_auth_headers()` helper. Added 10 test files covering all 9 untested API modules plus config security.

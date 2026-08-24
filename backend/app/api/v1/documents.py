@@ -14,6 +14,36 @@ from app.schemas.document import DocumentResponse, PaginatedDocuments
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+# File upload validation constants
+MAX_UPLOAD_SIZE = 25 * 1024 * 1024  # 25MB
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/csv",
+    "application/geo+json",
+    "application/json",
+}
+ALLOWED_EXTENSIONS = {
+    ".pdf",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".csv",
+    ".geojson",
+    ".json",
+}
+
 
 @router.get("", response_model=PaginatedDocuments)
 async def list_documents(
@@ -62,16 +92,37 @@ async def upload_document(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    # Validate file extension
+    ext = os.path.splitext(file.filename or "file")[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File type '{ext}' is not allowed. Accepted: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
+        )
+
+    # Validate MIME type
+    if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"MIME type '{file.content_type}' is not allowed. Accepted types: PDF, JPEG, PNG, GIF, DOC, DOCX, XLS, XLSX, CSV, GeoJSON.",
+        )
+
+    # Read and validate file size
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File size ({len(content) / (1024 * 1024):.1f}MB) exceeds maximum allowed size of {MAX_UPLOAD_SIZE / (1024 * 1024):.0f}MB.",
+        )
+
     # Save file
     upload_dir = os.path.join(settings.UPLOAD_DIR, "documents")
     os.makedirs(upload_dir, exist_ok=True)
 
     file_id = str(uuid.uuid4())
-    ext = os.path.splitext(file.filename or "file")[1]
     file_name = f"{file_id}{ext}"
     file_path = os.path.join(upload_dir, file_name)
 
-    content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
 

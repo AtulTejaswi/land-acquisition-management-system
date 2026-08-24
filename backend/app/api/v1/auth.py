@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from app.db.session import get_db
 from app.models.user import User, Role
 from app.core.security import (
@@ -28,14 +30,18 @@ import string
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    # request param is required by slowapi decorator
     result = await db.execute(
-        select(User).where(User.email == request.email, User.is_active == True)
+        select(User).where(User.email == login_data.email, User.is_active == True)
     )
     user = result.scalar_one_or_none()
-    if not user or not verify_password(request.password, user.password_hash):
+    if not user or not verify_password(login_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
@@ -120,8 +126,12 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
-async def forgot_password(request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == request.email))
+@limiter.limit("3/minute")
+async def forgot_password(
+    request: Request, forgot_data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    # request param is required by slowapi decorator
+    result = await db.execute(select(User).where(User.email == forgot_data.email))
     user = result.scalar_one_or_none()
     # Always return success for security
     otp = "".join(random.choices(string.digits, k=6))
