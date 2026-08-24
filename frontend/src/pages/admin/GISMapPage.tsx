@@ -16,9 +16,8 @@ const VERIFICATION_COLORS: Record<string, string> = {
 
 export default function GISMapPage() {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
+  const [map, setMap] = useState<maplibregl.Map | null>(null);
   const [selectedParcel, setSelectedParcel] = useState<any>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
 
   const { data: geojsonData } = useQuery({
     queryKey: ['gis-parcels'],
@@ -29,31 +28,23 @@ export default function GISMapPage() {
   });
 
   useEffect(() => {
-    if (!mapContainer.current || mapRef.current) return;
+    if (!mapContainer.current) return undefined;
 
-    const loadMapLibre = async () => {
-      const ml = maplibregl;
+    const instance = new maplibregl.Map({
+      container: mapContainer.current,
+      style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      center: [79.0882, 21.1458],
+      zoom: 5,
+    });
 
-      const map = new ml.Map({
-        container: mapContainer.current!,
-        style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        center: [79.0882, 21.1458], // Nagpur, India
-        zoom: 5,
-      });
+    instance.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-      map.addControl(new ml.NavigationControl(), 'top-right');
-
-      map.on('load', () => {
-        setMapLoaded(true);
-        mapRef.current = map;
-      });
-    };
-
-    loadMapLibre();
+    instance.on('load', () => {
+      setMap(instance);
+    });
 
     return () => {
-      mapRef.current?.remove();
-      mapRef.current = null;
+      instance.remove();
     };
   }, []);
 
@@ -87,9 +78,9 @@ export default function GISMapPage() {
         <div className="flex-1 rounded-xl overflow-hidden border border-slate-200">
           <div ref={mapContainer} className="w-full h-full" />
           <ParcelLayer
-            map={mapRef.current}
+            map={map}
             geojsonData={geojsonData}
-            mapLoaded={mapLoaded}
+            mapLoaded={!!map}
             onSelectParcel={setSelectedParcel}
           />
         </div>
