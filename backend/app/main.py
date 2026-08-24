@@ -17,6 +17,8 @@ from app.api.v1 import (
     ai_routes,
     notifications_legal,
     objections,
+    rr,
+    possession,
 )
 import os
 
@@ -54,6 +56,8 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(ai_routes.router, prefix="/api/v1")
 app.include_router(notifications_legal.router, prefix="/api/v1")
 app.include_router(objections.router, prefix="/api/v1")
+app.include_router(rr.router, prefix="/api/v1")
+app.include_router(possession.router, prefix="/api/v1")
 
 
 @app.get("/api/health")

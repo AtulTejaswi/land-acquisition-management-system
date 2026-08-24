@@ -6,6 +6,7 @@ import { ToastProvider } from '../components/toast/ToastProvider';
 
 // Auth
 import Login from '../pages/auth/Login';
+import ForgotPassword from '../pages/auth/ForgotPassword';
 
 // Public
 import Landing from '../pages/public/Landing';
@@ -20,16 +21,22 @@ import UserManagement from '../pages/admin/UserManagement';
 import ReportsPage from '../pages/admin/ReportsPage';
 import GISMapPage from '../pages/admin/GISMapPage';
 import NotificationsPage from '../pages/admin/NotificationsPage';
+import SettingsPage from '../pages/admin/Settings';
 
 // State
 import StateDashboard from '../pages/state/StateDashboard';
 
 // District
 import DistrictDashboard from '../pages/district/DistrictDashboard';
+import CompensationDesk from '../pages/district/CompensationDesk';
+import VerificationQueue from '../pages/district/VerificationQueue';
+import ParcelVerification from '../pages/district/ParcelVerification';
+import RRManagement from '../pages/district/RRManagement';
 
 // Agency
 import MyProjects from '../pages/agency/MyProjects';
 import CreateProposal from '../pages/agency/CreateProposal';
+import AgencyMyDocuments from '../pages/agency/MyDocuments';
 
 // Field
 import MobileHome from '../pages/field/MobileHome';
@@ -41,6 +48,7 @@ import MobileProfile from '../pages/field/MobileProfile';
 import TrackStatus from '../pages/citizen/TrackStatus';
 import MyCompensation from '../pages/citizen/MyCompensation';
 import MyDocuments from '../pages/citizen/MyDocuments';
+import MyRR from '../pages/citizen/MyRR';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -71,6 +79,7 @@ function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* Admin */}
       <Route path="/admin" element={<ProtectedRoute><RoleShell /></ProtectedRoute>}>
@@ -81,6 +90,7 @@ function AppRoutes() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="gis" element={<GISMapPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
 
       {/* State */}
@@ -96,9 +106,10 @@ function AppRoutes() {
       {/* District */}
       <Route path="/district" element={<ProtectedRoute><RoleShell /></ProtectedRoute>}>
         <Route path="dashboard" element={<DistrictDashboard />} />
-        <Route path="verification" element={<ProjectList />} />
-        <Route path="parcels" element={<GISMapPage />} />
-        <Route path="compensation" element={<ReportsPage />} />
+        <Route path="verification" element={<VerificationQueue />} />
+        <Route path="parcels" element={<ParcelVerification />} />
+        <Route path="compensation" element={<CompensationDesk />} />
+        <Route path="rr" element={<RRManagement />} />
         <Route path="notifications" element={<NotificationsPage />} />
       </Route>
 
@@ -108,7 +119,7 @@ function AppRoutes() {
         <Route path="create" element={<CreateProposal />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="gis" element={<GISMapPage />} />
-        <Route path="documents" element={<ReportsPage />} />
+        <Route path="documents" element={<AgencyMyDocuments />} />
       </Route>
 
       {/* Field Officer */}
@@ -123,6 +134,7 @@ function AppRoutes() {
       <Route path="/citizen" element={<ProtectedRoute><RoleShell /></ProtectedRoute>}>
         <Route path="track" element={<TrackStatus />} />
         <Route path="compensation" element={<MyCompensation />} />
+        <Route path="rr" element={<MyRR />} />
         <Route path="documents" element={<MyDocuments />} />
         <Route path="notifications" element={<NotificationsPage />} />
       </Route>

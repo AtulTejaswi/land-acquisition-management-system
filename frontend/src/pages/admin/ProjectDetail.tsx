@@ -7,6 +7,7 @@ import { StatusBadge } from '../../components/shared/StatusBadge';
 import { StageStepper } from '../../components/project/StageStepper';
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/utils';
 import { motion } from 'framer-motion';
+import { KPICard } from '../../components/shared/KPICard';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +52,15 @@ export default function ProjectDetail() {
     queryKey: ['ai-missing-docs', id],
     queryFn: async () => {
       const { data } = await api.get(`/ai/missing-documents/${id}`);
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: possessionStatus } = useQuery({
+    queryKey: ['possession-status', id],
+    queryFn: async () => {
+      const { data } = await api.get(`/possession/project/${id}/status`);
       return data;
     },
     enabled: !!id,
@@ -210,6 +220,56 @@ export default function ProjectDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* Possession Status */}
+          {possessionStatus && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>📋 Possession Status</span>
+                  <span className="text-sm font-normal text-slate-500">
+                    {possessionStatus.possessed_parcels}/{possessionStatus.total_parcels} parcels
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1">
+                    <span>Completion</span>
+                    <span className="tabular-nums">{possessionStatus.completion_percentage}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-3">
+                    <div
+                      className="bg-emerald-500 h-3 rounded-full transition-all"
+                      style={{ width: `${possessionStatus.completion_percentage}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {possessionStatus.parcels?.map((p: any) => (
+                    <div
+                      key={p.parcel_id}
+                      className={`flex items-center justify-between p-2 rounded-lg border ${
+                        p.has_possession ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">
+                          {p.survey_number}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {p.area_hectares?.toFixed(2)} ha
+                        </div>
+                      </div>
+                      <StatusBadge
+                        status={p.has_possession ? 'completed' : 'pending'}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

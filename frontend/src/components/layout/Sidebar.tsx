@@ -16,6 +16,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: 'Reports / MIS', path: '/admin/reports', icon: '📈' },
     { label: 'GIS Map', path: '/admin/gis', icon: '🗺️' },
     { label: 'Notifications', path: '/admin/notifications', icon: '🔔' },
+    { label: 'Settings', path: '/admin/settings', icon: '⚙️' },
   ],
   state_authority: [
     { label: 'State Dashboard', path: '/state/dashboard', icon: '📊' },
@@ -30,6 +31,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: 'Verification Queue', path: '/district/verification', icon: '✅' },
     { label: 'Parcels', path: '/district/parcels', icon: '🗺️' },
     { label: 'Compensation Desk', path: '/district/compensation', icon: '💰' },
+    { label: 'R&R Management', path: '/district/rr', icon: '🏘️' },
     { label: 'Notifications', path: '/district/notifications', icon: '🔔' },
   ],
   agency: [
@@ -47,6 +49,7 @@ const roleNavItems: Record<string, NavItem[]> = {
   citizen: [
     { label: 'Track Status', path: '/citizen/track', icon: '🔍' },
     { label: 'My Compensation', path: '/citizen/compensation', icon: '💰' },
+    { label: 'My R&R', path: '/citizen/rr', icon: '🏘️' },
     { label: 'My Documents', path: '/citizen/documents', icon: '📄' },
     { label: 'Notifications', path: '/citizen/notifications', icon: '🔔' },
   ],

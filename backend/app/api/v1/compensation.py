@@ -9,9 +9,6 @@ import string
 
 from app.db.session import get_db
 from app.models.compensation import Compensation, Payment
-from app.models.land import LandParcel
-from app.models.possession import Possession
-from app.models.rr import RehabilitationFamily
 from app.models.user import User
 from app.core.deps import require_role, get_current_user
 from app.schemas.compensation import (
@@ -23,12 +20,8 @@ from app.schemas.compensation import (
     PaymentUpdate,
     PaymentResponse,
     PaginatedPayments,
-    RRFamilyCreate,
-    RRFamilyUpdate,
-    RRFamilyResponse,
-    PaginatedRRFamilies,
 )
-from app.schemas.possession import PossessionCreate, PossessionResponse
+from app.models.audit import AuditLog
 
 router = APIRouter(tags=["compensation"])
 
@@ -44,6 +37,7 @@ async def list_compensations(
     page_size: int = Query(20, ge=1, le=100),
     parcel_id: Optional[uuid.UUID] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
+    project_id: Optional[uuid.UUID] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -96,6 +90,18 @@ async def create_compensation(
         assessment_date=datetime.now(timezone.utc),
     )
     db.add(comp)
+    await db.flush()
+
+    # Audit log
+    audit = AuditLog(
+        entity_type="compensation",
+        entity_id=comp.id,
+        action="create",
+        performed_by=current_user.id,
+        new_value=data.model_dump(exclude_none=True),
+        remarks="Compensation assessment created",
+    )
+    db.add(audit)
     await db.commit()
     await db.refresh(comp)
     return CompensationResponse.model_validate(comp)
@@ -115,6 +121,7 @@ async def update_compensation(
     if not comp:
         raise HTTPException(status_code=404, detail="Compensation not found")
 
+    old_status = comp.status
     update_dict = data.model_dump(exclude_unset=True)
     for key, value in update_dict.items():
         setattr(comp, key, value)
@@ -123,6 +130,20 @@ async def update_compensation(
     comp.total_award = (
         (comp.market_value or 0) + (comp.solatium or 0) + (comp.additional_compensation or 0)
     )
+
+    # Audit log on status change
+    if "status" in update_dict and update_dict["status"] != old_status:
+        audit = AuditLog(
+            entity_type="compensation",
+            entity_id=comp.id,
+            action="status_change",
+            performed_by=current_user.id,
+            old_value={"status": old_status},
+            new_value={"status": update_dict["status"]},
+            remarks=f"Compensation status changed from {old_status} to {update_dict['status']}",
+        )
+        db.add(audit)
+
     await db.commit()
     await db.refresh(comp)
     return CompensationResponse.model_validate(comp)
@@ -177,6 +198,20 @@ async def create_payment(
         pfms_reference=generate_pfms_reference(),
     )
     db.add(payment)
+    await db.flush()
+
+    audit = AuditLog(
+        entity_type="payment",
+        entity_id=payment.id,
+        action="create",
+        performed_by=current_user.id,
+        new_value={
+            "compensation_id": str(data.compensation_id),
+            "amount": data.amount,
+        },
+        remarks=f"Payment of ₹{data.amount:,.2f} created with PFMS ref {payment.pfms_reference}",
+    )
+    db.add(audit)
     await db.commit()
     await db.refresh(payment)
     return PaymentResponse.model_validate(payment)
@@ -196,115 +231,24 @@ async def update_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
+    old_status = payment.payment_status
     update_dict = data.model_dump(exclude_unset=True)
     for key, value in update_dict.items():
         setattr(payment, key, value)
+
+    # Audit log on status change
+    if "payment_status" in update_dict and update_dict["payment_status"] != old_status:
+        audit = AuditLog(
+            entity_type="payment",
+            entity_id=payment.id,
+            action="status_change",
+            performed_by=current_user.id,
+            old_value={"payment_status": old_status},
+            new_value={"payment_status": update_dict["payment_status"]},
+            remarks=f"Payment status changed from {old_status} to {update_dict['payment_status']}",
+        )
+        db.add(audit)
+
     await db.commit()
     await db.refresh(payment)
     return PaymentResponse.model_validate(payment)
-
-
-# ===== Possession =====
-@router.get("/possession", response_model=list[PossessionResponse])
-async def list_possessions(
-    parcel_id: Optional[uuid.UUID] = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    query = select(Possession)
-    if parcel_id:
-        query = query.where(Possession.parcel_id == parcel_id)
-    result = await db.execute(query.order_by(Possession.created_at.desc()))
-    return [PossessionResponse.model_validate(p) for p in result.scalars().all()]
-
-
-@router.post("/possession", response_model=PossessionResponse, status_code=status.HTTP_201_CREATED)
-async def create_possession(
-    data: PossessionCreate,
-    current_user: User = Depends(
-        require_role(["super_admin", "state_authority", "district_officer"])
-    ),
-    db: AsyncSession = Depends(get_db),
-):
-    pos = Possession(
-        parcel_id=data.parcel_id,
-        possession_date=data.possession_date,
-        taken_by=current_user.id,
-        possession_type=data.possession_type,
-        remarks=data.remarks,
-    )
-    db.add(pos)
-    await db.commit()
-    await db.refresh(pos)
-    return PossessionResponse.model_validate(pos)
-
-
-# ===== R&R Families =====
-@router.get("/rr/families", response_model=PaginatedRRFamilies)
-async def list_rr_families(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    project_id: Optional[uuid.UUID] = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    query = select(RehabilitationFamily)
-    count_query = select(func.count(RehabilitationFamily.id))
-
-    if project_id:
-        query = query.where(RehabilitationFamily.project_id == project_id)
-        count_query = count_query.where(RehabilitationFamily.project_id == project_id)
-
-    total = (await db.execute(count_query)).scalar()
-    query = (
-        query.order_by(RehabilitationFamily.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
-    result = await db.execute(query)
-    items = result.scalars().all()
-    return PaginatedRRFamilies(
-        items=[RRFamilyResponse.model_validate(f) for f in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
-
-
-@router.post("/rr/families", response_model=RRFamilyResponse, status_code=status.HTTP_201_CREATED)
-async def create_rr_family(
-    data: RRFamilyCreate,
-    current_user: User = Depends(
-        require_role(["super_admin", "state_authority", "district_officer"])
-    ),
-    db: AsyncSession = Depends(get_db),
-):
-    family = RehabilitationFamily(**data.model_dump())
-    db.add(family)
-    await db.commit()
-    await db.refresh(family)
-    return RRFamilyResponse.model_validate(family)
-
-
-@router.patch("/rr/families/{family_id}", response_model=RRFamilyResponse)
-async def update_rr_family(
-    family_id: uuid.UUID,
-    data: RRFamilyUpdate,
-    current_user: User = Depends(
-        require_role(["super_admin", "state_authority", "district_officer"])
-    ),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(RehabilitationFamily).where(RehabilitationFamily.id == family_id)
-    )
-    family = result.scalar_one_or_none()
-    if not family:
-        raise HTTPException(status_code=404, detail="RR Family not found")
-
-    update_dict = data.model_dump(exclude_unset=True)
-    for key, value in update_dict.items():
-        setattr(family, key, value)
-    await db.commit()
-    await db.refresh(family)
-    return RRFamilyResponse.model_validate(family)

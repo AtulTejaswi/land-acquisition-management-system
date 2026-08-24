@@ -91,37 +91,73 @@ npm run dev  # Start on port 5173
 nlams/
 ├── backend/               # FastAPI backend
 │   ├── app/
-│   │   ├── api/v1/        # API routes
+│   │   ├── api/v1/        # API routes (thin wrappers)
 │   │   ├── core/          # Config, security, deps
 │   │   ├── db/            # Database session
-│   │   ├── models/        # SQLAlchemy models
-│   │   ├── schemas/       # Pydantic schemas
-│   │   ├── services/      # Business logic
-│   │   └── main.py        # FastAPI app
-│   ├── seed.py            # Database seeder
+│   │   ├── models/        # SQLAlchemy models (20+ tables)
+│   │   ├── schemas/       # Pydantic request/response schemas
+│   │   ├── services/      # Business logic layer
+│   │   │   ├── project_service.py
+│   │   │   ├── dashboard_service.py
+│   │   │   └── gis_service.py
+│   │   ├── ai/            # AI insights (rule-based algorithms)
+│   │   │   └── insights.py
+│   │   ├── utils/         # Storage service, helpers
+│   │   │   └── storage.py
+│   │   └── main.py        # FastAPI app + router registration
+│   ├── tests/             # pytest tests (28 passing)
+│   ├── app/seed.py        # Database seeder (canonical)
 │   └── requirements.txt
 ├── frontend/              # React frontend
 │   ├── src/
-│   │   ├── app/           # Router setup
-│   │   ├── components/    # Reusable components
-│   │   ├── pages/         # Page components by role
-│   │   ├── services/      # API client
-│   │   └── store/         # Auth context
+│   │   ├── app/           # Router setup (App.tsx)
+│   │   ├── components/
+│   │   │   ├── ui/        # shadcn primitives
+│   │   │   ├── layout/    # Sidebar, Topbar, RoleShell
+│   │   │   ├── shared/    # DataTable, KPICard, StatusBadge, etc.
+│   │   │   ├── project/   # StageStepper
+│   │   │   ├── gis/       # GIS components (barrel)
+│   │   │   ├── dashboard/ # Dashboard components (barrel)
+│   │   │   ├── compensation/ # Compensation components (barrel)
+│   │   │   ├── rr/        # R&R components (barrel)
+│   │   │   ├── documents/ # Document components (barrel)
+│   │   │   ├── notifications/ # Notification components (barrel)
+│   │   │   └── toast/     # Toast notification system
+│   │   ├── pages/         # Page components by role (25+ pages)
+│   │   │   ├── auth/      # Login, ForgotPassword
+│   │   │   ├── public/    # Landing, About, Contact
+│   │   │   ├── admin/     # NationalDashboard, ProjectList, etc.
+│   │   │   ├── state/     # StateDashboard
+│   │   │   ├── district/  # VerificationQueue, CompensationDesk, RRManagement
+│   │   │   ├── agency/    # MyProjects, CreateProposal, MyDocuments
+│   │   │   ├── citizen/   # TrackStatus, MyCompensation, MyRR, MyDocuments
+│   │   │   └── field/     # MobileHome, MobileSurveys, MobileCamera, MobileProfile
+│   │   ├── services/      # API client, auth service
+│   │   ├── store/         # Auth context
+│   │   ├── hooks/         # Custom hooks (useProjects, useParcels, useRoleGuard)
+│   │   ├── types/         # TypeScript interfaces
+│   │   └── lib/           # Utils, formatters
 │   └── package.json
 ├── docker-compose.yml
-└── README.md
+├── .github/workflows/     # CI/CD pipeline
+└── DECISIONS.md           # Architectural decisions
 ```
 
 ## 🎯 Key Features
 
 1. **6 Role-Based Dashboards** — Super Admin, State Authority, District Officer, Agency, Field Officer, Citizen
-2. **14-Stage Lifecycle Tracking** — Full pipeline from proposal to completion
-3. **GIS Map Integration** — Interactive MapLibre map with parcel polygons (PostGIS)
-4. **AI Insights Panel** — Delay prediction, risk scoring, missing document detection
-5. **Citizen Transparency Portal** — Real-time compensation/payment tracking
-6. **Mobile Field Officer** — GPS capture, photo upload, point-in-polygon validation
-7. **Audit Trail** — Complete timeline of all stage changes
-8. **MIS Report Export** — One-click CSV download
+2. **14-Stage Lifecycle Tracking** — Full pipeline from proposal to completion with stage stepper
+3. **GIS Map Integration** — Interactive MapLibre map with colored parcel polygons (PostGIS)
+4. **AI Insights Panel** — Delay prediction, risk scoring (0-100), missing document detection, compensation estimation
+5. **District Verification Queue** — Parcel verification workflow with approve/dispute actions
+6. **Compensation Desk** — Full compensation → payment → possession chain with audit logging
+7. **R&R Management** — Rehabilitation & Resettlement tracking with family-level benefit status
+8. **Citizen Transparency Portal** — Track status, compensation, R&R, and documents
+9. **Mobile Field Officer** — GPS capture, photo upload, bottom tab bar navigation
+10. **Audit Trail** — Complete timeline of all stage changes with officer names and timestamps
+11. **MIS Report Export** — One-click CSV download
+12. **Role-Switch Demo Mode** — Quick account switcher for demos
+13. **Forgot Password** — Mock OTP flow (Sandbox/Demo Mode)
 
 ## 🏷️ Demo Mode
 
