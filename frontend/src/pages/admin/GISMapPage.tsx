@@ -94,6 +94,7 @@ export default function GISMapPage() {
                 <button
                   onClick={() => setSelectedParcel(null)}
                   className="text-slate-400 hover:text-slate-600"
+                  aria-label="Close parcel details"
                 >
                   ✕
                 </button>

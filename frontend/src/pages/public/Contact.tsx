@@ -51,17 +51,17 @@ export default function Contact() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Name</label>
-                  <input className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm" placeholder="Your name" />
+                  <label htmlFor="contact-name" className="text-sm font-medium text-slate-700">Name</label>
+                  <input id="contact-name" className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm" placeholder="Your name" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-slate-700">Email</label>
-                  <input className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm" placeholder="your@email.com" />
+                  <label htmlFor="contact-email" className="text-sm font-medium text-slate-700">Email</label>
+                  <input id="contact-email" type="email" className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm" placeholder="your@email.com" />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Message</label>
-                <textarea className="mt-1 w-full rounded-lg border border-slate-300 p-3 text-sm" rows={4} placeholder="Your message..." />
+                <label htmlFor="contact-message" className="text-sm font-medium text-slate-700">Message</label>
+                <textarea id="contact-message" className="mt-1 w-full rounded-lg border border-slate-300 p-3 text-sm" rows={4} placeholder="Your message..." />
               </div>
               <Button>Send Message</Button>
             </div>

@@ -85,8 +85,9 @@ export default function CreateProposal() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-700">Project Name *</label>
+              <label htmlFor="proposal-name" className="text-sm font-medium text-slate-700">Project Name *</label>
               <Input
+                id="proposal-name"
                 className="mt-1"
                 placeholder="e.g. NH-44 Widening — Nagpur to Betul"
                 value={form.name}
@@ -96,8 +97,9 @@ export default function CreateProposal() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-slate-700">Description</label>
+              <label htmlFor="proposal-desc" className="text-sm font-medium text-slate-700">Description</label>
               <textarea
+                id="proposal-desc"
                 className="mt-1 w-full rounded-lg border border-slate-300 p-3 text-sm"
                 rows={3}
                 placeholder="Brief description of the project..."
@@ -128,8 +130,9 @@ export default function CreateProposal() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-slate-700">Estimated Budget (₹)</label>
+                <label htmlFor="proposal-budget" className="text-sm font-medium text-slate-700">Estimated Budget (₹)</label>
                 <Input
+                  id="proposal-budget"
                   className="mt-1"
                   type="number"
                   placeholder="e.g. 50000000"
@@ -138,8 +141,9 @@ export default function CreateProposal() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Land Required (hectares)</label>
+                <label htmlFor="proposal-land" className="text-sm font-medium text-slate-700">Land Required (hectares)</label>
                 <Input
+                  id="proposal-land"
                   className="mt-1"
                   type="number"
                   step="0.001"
@@ -152,8 +156,9 @@ export default function CreateProposal() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-slate-700">Start Date</label>
+                <label htmlFor="proposal-start" className="text-sm font-medium text-slate-700">Start Date</label>
                 <Input
+                  id="proposal-start"
                   className="mt-1"
                   type="date"
                   value={form.start_date}
@@ -161,8 +166,9 @@ export default function CreateProposal() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Target Completion Date</label>
+                <label htmlFor="proposal-end" className="text-sm font-medium text-slate-700">Target Completion Date</label>
                 <Input
+                  id="proposal-end"
                   className="mt-1"
                   type="date"
                   value={form.target_completion_date}

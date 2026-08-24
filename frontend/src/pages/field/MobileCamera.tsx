@@ -89,6 +89,7 @@ export default function MobileCamera() {
                 <button
                   onClick={() => { setPreview(null); }}
                   className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm"
+                  aria-label="Remove photo"
                 >
                   ✕
                 </button>
@@ -110,7 +111,7 @@ export default function MobileCamera() {
       </Card>
 
       {/* GPS Capture */}
-      <Button variant="outline" className="w-full" onClick={captureGPS} disabled={capturing}>
+      <Button variant="outline" className="w-full min-h-[44px]" onClick={captureGPS} disabled={capturing}>
         {capturing ? '📍 Capturing GPS...' : gpsCoords ? `✅ GPS: ${gpsCoords.lat.toFixed(4)}, ${gpsCoords.lng.toFixed(4)}` : '📍 Capture GPS Location'}
       </Button>
 
@@ -120,7 +121,9 @@ export default function MobileCamera() {
           <CardTitle className="text-base">Condition Notes</CardTitle>
         </CardHeader>
         <CardContent>
+          <label htmlFor="camera-notes" className="text-sm font-medium text-slate-700 sr-only">Condition Notes</label>
           <textarea
+            id="camera-notes"
             className="w-full rounded-lg border border-slate-300 p-3 text-sm"
             rows={3}
             placeholder="Describe the current condition of the parcel..."
@@ -131,7 +134,7 @@ export default function MobileCamera() {
       </Card>
 
       {/* Submit */}
-      <Button className="w-full shadow-lg" size="lg" onClick={handleUpload} disabled={uploading}>
+      <Button className="w-full shadow-lg min-h-[44px]" size="lg" onClick={handleUpload} disabled={uploading}>
         {uploading ? '📤 Uploading...' : '📤 Upload Photo'}
       </Button>
     </div>

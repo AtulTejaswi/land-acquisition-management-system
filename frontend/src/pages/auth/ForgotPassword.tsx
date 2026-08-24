@@ -64,10 +64,11 @@ export default function ForgotPassword() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">
+                  <label htmlFor="forgot-email" className="text-sm font-medium text-slate-700 mb-1 block">
                     Registered Email
                   </label>
                   <Input
+                    id="forgot-email"
                     type="email"
                     placeholder="e.g. rajesh@nlams.gov.in"
                     value={email}

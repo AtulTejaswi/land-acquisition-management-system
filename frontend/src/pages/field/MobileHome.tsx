@@ -84,21 +84,21 @@ export default function MobileHome() {
       {/* Quick Actions */}
       <Card>
         <CardContent className="p-4 space-y-3">
-          <Link to="/field/surveys" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+          <Link to="/field/surveys" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors min-h-[44px]">
             <span className="text-xl">📋</span>
             <div>
               <div className="text-sm font-medium text-slate-900">My Surveys</div>
               <div className="text-xs text-slate-500">View and manage field surveys</div>
             </div>
           </Link>
-          <Link to="/field/camera" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+          <Link to="/field/camera" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors min-h-[44px]">
             <span className="text-xl">📸</span>
             <div>
               <div className="text-sm font-medium text-slate-900">Camera</div>
               <div className="text-xs text-slate-500">Capture geo-tagged photos</div>
             </div>
           </Link>
-          <Link to="/field/profile" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
+          <Link to="/field/profile" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors min-h-[44px]">
             <span className="text-xl">👤</span>
             <div>
               <div className="text-sm font-medium text-slate-900">My Profile</div>

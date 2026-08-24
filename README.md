@@ -105,7 +105,7 @@ nlams/
 │   │   ├── utils/         # Storage service, helpers
 │   │   │   └── storage.py
 │   │   └── main.py        # FastAPI app + router registration
-│   ├── tests/             # pytest tests (34 passing)
+│   ├── tests/             # pytest tests (70 passing)
 │   ├── app/seed.py        # Database seeder (canonical)
 │   └── requirements.txt
 ├── frontend/              # React frontend
@@ -135,7 +135,10 @@ nlams/
 │   │   ├── store/         # Auth context
 │   │   ├── hooks/         # Custom hooks (useProjects, useParcels, useRoleGuard)
 │   │   ├── types/         # TypeScript interfaces
-│   │   └── lib/           # Utils, formatters
+│   │   ├── lib/           # Utils, formatters
+│   │   ├── test/          # Test setup and utilities
+│   │   └── __tests__/     # Integration tests (3 role flows)
+│   ├── vitest.config.ts   # Vitest test configuration
 │   └── package.json
 ├── docker-compose.yml
 ├── .github/workflows/     # CI/CD pipeline

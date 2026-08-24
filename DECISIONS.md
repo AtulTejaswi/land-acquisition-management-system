@@ -76,3 +76,22 @@
 3. **File upload validation** (`documents.py`): Added `MAX_UPLOAD_SIZE = 25MB` check and `ALLOWED_MIME_TYPES` / `ALLOWED_EXTENSIONS` allowlists (PDF, JPEG, PNG, GIF, DOC, DOCX, XLS, XLSX, CSV, GeoJSON). Returns 400 with descriptive error messages for violations. Extension and MIME type are both checked (defense in depth).
 4. **SQL injection spot-check**: Verified no raw SQL string concatenation exists. All database access uses SQLAlchemy ORM query builders. The only `text()` usage is in `seed.py` for `CREATE EXTENSION` with hardcoded strings (no user input).
 5. **Test infrastructure**: Enhanced `conftest.py` with role-specific authenticated client fixtures (`super_admin_client`, `citizen_client`, etc.) using `_make_auth_headers()` helper. Added 10 test files covering all 9 untested API modules plus config security.
+
+## D17: Frontend Test Framework & Accessibility Pass
+**Decision:** Add Vitest + React Testing Library for component testing, and perform a systematic accessibility pass.
+**Test Framework:**
+- **Vitest** (v4.1) with `jsdom` environment, configured via `vitest.config.ts` (separate from `vite.config.ts` to avoid affecting build).
+- **@testing-library/react** + **@testing-library/jest-dom** + **@testing-library/user-event** for component testing utilities.
+- **16 test files, 111 tests total** covering all shared components and extracted components:
+  - Shared: DataTable, FilterBar, StatusBadge, KPICard, EmptyState, Skeleton
+  - Extracted: TrendChart, HeatmapIndia, ParcelLayer, DocList, StageProgress, BenefitTracker, NotificationItem
+  - Integration: 3 role-based flow tests (Citizen, District Officer, Field Officer)
+- `api` module mocked via `vi.mock('@/services/api')` for isolated component testing.
+- `AuthProvider` used in integration tests instead of directly accessing the React context (which is not exported).
+**Accessibility Fixes:**
+1. **Icon-only buttons**: Added `aria-label` to close/dismiss buttons in `GISMapPage.tsx` and `MobileCamera.tsx`.
+2. **Form labels**: Added `htmlFor`/`id` pairing to all form inputs in Login, ForgotPassword, Contact, CreateProposal, MobileSurveys, and MobileCamera pages. Radix Select components cannot receive `id` on the root, so labels for select inputs are left without `htmlFor`.
+3. **Color contrast**: Verified all StatusBadge color pairs (`*-700` text on `*-100` background) meet WCAG AA (≥4.5:1) for the `text-xs font-semibold` size used. The standard Tailwind 700/100 palette pairs are designed for accessibility.
+4. **Touch targets**: Added `min-h-[44px]` to mobile field-officer interactive elements (action links in MobileHome, buttons in MobileSurveys and MobileCamera). RoleShell bottom nav already had `min-w-[44px] min-h-[44px]`.
+5. **Keyboard navigation**: All forms use native `<form>` with `<button type="submit">`, ensuring Enter-key submission. No custom dropdown traps or modal focus issues found (Radix primitives handle focus management).
+**CI Integration:** Added `frontend-test` job to `.github/workflows/sih_workflow.yml` running `npx vitest run` after `frontend-lint`.

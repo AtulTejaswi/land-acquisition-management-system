@@ -81,8 +81,9 @@ export default function Login() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Email</label>
+                <label htmlFor="login-email" className="text-sm font-medium text-slate-700">Email</label>
                 <Input
+                  id="login-email"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
@@ -91,8 +92,9 @@ export default function Login() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Password</label>
+                <label htmlFor="login-password" className="text-sm font-medium text-slate-700">Password</label>
                 <Input
+                  id="login-password"
                   type="password"
                   placeholder="Enter password"
                   value={password}

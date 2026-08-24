@@ -104,7 +104,7 @@ export default function MobileSurveys() {
 
       {/* New Inspection Button */}
       <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 max-w-md w-full px-4">
-        <Button className="w-full shadow-lg" size="lg" onClick={() => setShowNewForm(!showNewForm)}>
+        <Button className="w-full shadow-lg min-h-[44px]" size="lg" onClick={() => setShowNewForm(!showNewForm)}>
           {showNewForm ? '✕ Cancel' : '➕ New Inspection'}
         </Button>
       </div>
@@ -118,8 +118,9 @@ export default function MobileSurveys() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-slate-700">Select Parcel</label>
+                <label htmlFor="parcel-search" className="text-sm font-medium text-slate-700">Select Parcel</label>
                 <Input
+                  id="parcel-search"
                   placeholder="Search parcel by survey number..."
                   value={parcelSearch}
                   onChange={(e) => setParcelSearch(e.target.value)}
@@ -132,7 +133,7 @@ export default function MobileSurveys() {
                 ))}
               </div>
 
-              <Button variant="outline" className="w-full" onClick={captureGPS} disabled={capturing}>
+              <Button variant="outline" className="w-full min-h-[44px]" onClick={captureGPS} disabled={capturing}>
                 {capturing ? '📍 Capturing GPS...' : gpsCoords ? `✅ GPS: ${gpsCoords.lat.toFixed(4)}, ${gpsCoords.lng.toFixed(4)}` : '📍 Capture GPS Location'}
               </Button>
 
@@ -143,8 +144,9 @@ export default function MobileSurveys() {
               )}
 
               <div>
-                <label className="text-sm font-medium text-slate-700">Condition Notes</label>
+                <label htmlFor="survey-notes" className="text-sm font-medium text-slate-700">Condition Notes</label>
                 <textarea
+                  id="survey-notes"
                   className="mt-1 w-full rounded-lg border border-slate-300 p-3 text-sm"
                   rows={3}
                   placeholder="Describe the current condition..."
@@ -154,8 +156,9 @@ export default function MobileSurveys() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-700">📷 Photo</label>
+                <label htmlFor="survey-photo" className="text-sm font-medium text-slate-700">📷 Photo</label>
                 <input
+                  id="survey-photo"
                   type="file"
                   accept="image/*"
                   capture="environment"
@@ -163,7 +166,7 @@ export default function MobileSurveys() {
                 />
               </div>
 
-              <Button className="w-full" onClick={submitSurvey}>Submit Inspection</Button>
+              <Button className="w-full min-h-[44px]" onClick={submitSurvey}>Submit Inspection</Button>
             </CardContent>
           </Card>
         </motion.div>
