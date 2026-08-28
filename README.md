@@ -68,23 +68,33 @@ npm run dev  # Start on port 5173
 - Click a marker → side drawer with survey number, area, ownership, owner list
 - Note: markers are village-level approximations, not surveyed boundaries
 
-### 3. State Dashboard (1 min)
-- Navigate to State Dashboard (Odisha)
-- See real charts: parcels by village (6 villages), area by village, ownership split
-- Drill into district view for Khordha
+### 3. BhoomiRashi Data Portal (1 min)
+- Navigate to BhoomiRashi Portal
+- Show ingestion summary KPIs (parsed parcels, owners, area)
+- Browse staging schedule table with bilingual survey numbers
+- Click "View Parties →" to inspect owner names and addresses
+- Click "Reload Datasheet" to trigger bhoomirashi Excel re-ingestion
 
-### 4. Citizen Portal (30 sec)
+### 4. ML Land-Nature Screening (30 sec)
+- Open API docs at http://localhost:8000/docs
+- Try `POST /ml/land-nature/predict` with village="Kanjiama", area=0.15
+- Show confidence score (99.39% private) and explanation factors
+- Note: citizen role gets 403 — ML is staff-only
+
+### 5. Dataset Browser (30 sec)
+- Navigate to Dataset Browser
+- Show 14 table selector cards with live row counts
+- Click "Land Parcels" → 249 records with dynamic columns
+- Click "Users" → 6 users with role and last login
+
+### 6. Citizen Portal (30 sec)
 - Logout → Login as Citizen
 - Show Track Status page with parcels, compensation, payments
+- Toggle Hindi/English language
 
-### 5. Field Officer Mobile (30 sec)
+### 7. Field Officer Mobile (30 sec)
 - Logout → Login as Field Officer
 - Show mobile-first survey screen with GPS capture
-
-### 6. Compensation Flow (30 sec)
-- Login as District Officer
-- Navigate to Compensation Desk
-- Show compensation → payment chain with seeded data
 
 ## 📁 Project Structure
 
@@ -92,75 +102,164 @@ npm run dev  # Start on port 5173
 nlams/
 ├── backend/               # FastAPI backend
 │   ├── app/
-│   │   ├── api/v1/        # API routes (thin wrappers)
-│   │   ├── core/          # Config, security, deps
-│   │   ├── db/            # Database session
+│   │   ├── api/v1/        # API routes (17 modules)
+│   │   │   ├── auth.py          # Login, register, refresh, logout
+│   │   │   ├── datasets.py      # Dataset browser (14 tables)
+│   │   │   ├── ml_routes.py     # ML inference + staging endpoints
+│   │   │   ├── gis.py           # GeoJSON import + map data
+│   │   │   └── ...              # parcels, compensation, dashboard, etc.
+│   │   ├── core/          # Config, security (JWT cookies), deps
+│   │   ├── db/            # Async SQLAlchemy session
 │   │   ├── models/        # SQLAlchemy models (20+ tables)
-│   │   ├── schemas/       # Pydantic request/response schemas
-│   │   ├── services/      # Business logic layer
-│   │   │   ├── project_service.py
-│   │   │   ├── dashboard_service.py
-│   │   │   └── gis_service.py
-│   │   ├── ai/            # AI insights (rule-based algorithms)
-│   │   │   └── insights.py
-│   │   ├── utils/         # Storage service, helpers
-│   │   │   └── storage.py
-│   │   └── main.py        # FastAPI app + router registration
-│   ├── tests/             # pytest tests (70 passing)
-│   ├── app/seed.py        # Database seeder (canonical)
+│   │   ├── schemas/       # Pydantic v2 request/response schemas
+│   │   ├── services/      # Business logic (dashboard, GIS, SMS)
+│   │   ├── ml/            # ML pipeline
+│   │   │   ├── normalize.py     # Bilingual text normalization
+│   │   │   ├── features.py      # Feature engineering
+│   │   │   ├── ingest.py        # Bhoomirashi workbook ingestion
+│   │   │   ├── train.py         # Model training
+│   │   │   ├── service.py       # Inference service
+│   │   │   └── artifacts/       # Trained model + metrics
+│   │   ├── scripts/       # Data import scripts
+│   │   ├── utils/         # Encryption, geo, storage
+│   │   └── main.py        # FastAPI app + middleware + routers
+│   ├── tests/             # pytest tests
+│   ├── alembic/           # Database migrations (5 versions)
+│   ├── seed.py            # Database seeder (bhoomirashi data)
 │   └── requirements.txt
-├── frontend/              # React frontend
+├── frontend/              # React 18 + Vite + TypeScript
 │   ├── src/
-│   │   ├── app/           # Router setup (App.tsx)
-│   │   ├── components/
-│   │   │   ├── ui/        # shadcn primitives
-│   │   │   ├── layout/    # Sidebar, Topbar, RoleShell
-│   │   │   ├── shared/    # DataTable, KPICard, StatusBadge, etc.
-│   │   │   ├── project/   # StageStepper
-│   │   │   ├── gis/       # ParcelLayer
-│   │   │   ├── dashboard/ # TrendChart, HeatmapIndia
-│   │   │   ├── rr/        # StageProgress, BenefitTracker
-│   │   │   ├── documents/ # DocList
-│   │   │   ├── notifications/ # NotificationItem
-│   │   │   └── toast/     # Toast notification system
-│   │   ├── pages/         # Page components by role (25+ pages)
-│   │   │   ├── auth/      # Login, ForgotPassword
-│   │   │   ├── public/    # Landing, About, Contact
-│   │   │   ├── admin/     # NationalDashboard, ProjectList, etc.
-│   │   │   ├── state/     # StateDashboard
-│   │   │   ├── district/  # VerificationQueue, CompensationDesk, RRManagement
-│   │   │   ├── agency/    # MyProjects, CreateProposal, MyDocuments
-│   │   │   ├── citizen/   # TrackStatus, MyCompensation, MyRR, MyDocuments
-│   │   │   └── field/     # MobileHome, MobileSurveys, MobileCamera, MobileProfile
-│   │   ├── services/      # API client, auth service
-│   │   ├── store/         # Auth context
-│   │   ├── hooks/         # Custom hooks (useProjects, useParcels, useRoleGuard)
-│   │   ├── types/         # TypeScript interfaces
-│   │   ├── lib/           # Utils, formatters
-│   │   ├── test/          # Test setup and utilities
-│   │   └── __tests__/     # Integration tests (3 role flows)
-│   ├── vitest.config.ts   # Vitest test configuration
-│   └── package.json
-├── docker-compose.yml
-├── .github/workflows/     # CI/CD pipeline
-└── DECISIONS.md           # Architectural decisions
+│   │   ├── app/           # Router (App.tsx)
+│   │   ├── components/    # Shared components
+│   │   │   ├── ui/        # shadcn primitives (card, button, etc.)
+│   │   │   ├── layout/    # RoleShell, Sidebar
+│   │   │   ├── shared/    # KPICard, StatusBadge, DataTable
+│   │   │   └── gis/       # ParcelLayer (MapLibre)
+│   │   ├── pages/         # 28 page components by role
+│   │   │   ├── admin/     # NationalDashboard, BhoomiRashiPortal,
+│   │   │   │              # CompensationReportPage, DatasetPage,
+│   │   │   │              # GISMapPage, ProjectList, etc.
+│   │   │   ├── citizen/   # TrackStatus, MyCompensation, MyRR
+│   │   │   ├── district/  # VerificationQueue, CompensationDesk
+│   │   │   └── field/     # MobileHome, MobileSurveys, MobileCamera
+│   │   ├── i18n/          # react-i18next (English + Hindi)
+│   │   ├── services/      # Axios client, auth service
+│   │   ├── store/         # AuthContext (httpOnly cookies)
+│   │   └── __tests__/     # Vitest integration tests
+│   ├── e2e/               # Playwright E2E tests (14 tests)
+│   └── vitest.config.ts
+├── docker-compose.yml     # Dev environment
+├── docker-compose.prod.yml # Production (no adminer)
+├── .github/workflows/     # CI: lint, test, build, E2E, Docker smoke
+└── DECISIONS.md           # Architectural decisions log
 ```
 
 ## 🎯 Key Features
 
 1. **6 Role-Based Dashboards** — Super Admin, State Authority, District Officer, Agency, Field Officer, Citizen
 2. **14-Stage Lifecycle Tracking** — Full pipeline from proposal to completion with stage stepper
-3. **GIS Map Integration** — Interactive MapLibre map with colored parcel polygons (PostGIS)
-4. **AI Insights Panel** — Delay prediction, risk scoring (0-100), missing document detection, compensation estimation
-5. **District Verification Queue** — Parcel verification workflow with approve/dispute actions
-6. **Compensation Desk** — Full compensation → payment → possession chain with audit logging
-7. **R&R Management** — Rehabilitation & Resettlement tracking with family-level benefit status
-8. **Citizen Transparency Portal** — Track status, compensation, R&R, and documents
-9. **Mobile Field Officer** — GPS capture, photo upload, bottom tab bar navigation
-10. **Audit Trail** — Complete timeline of all stage changes with officer names and timestamps
-11. **Report Exports** — One-click CSV download for Project MIS, Compensation, and GIS Parcel reports
-12. **Role-Switch Demo Mode** — Quick account switcher for demos
-13. **Forgot Password** — Mock OTP flow (Sandbox/Demo Mode)
+3. **GIS Map Integration** — Interactive MapLibre map with OpenFreeMap vector tiles and PostGIS parcel markers
+4. **ML Land-Nature Screening** — Logistic regression model predicting private vs government land ownership with explanation factors
+5. **BhoomiRashi Data Portal** — Ingest, browse, and promote gazette land records into active acquisition projects
+6. **Compensation Report** — KPIs, pie/bar charts, and detailed breakdown under RFCTLARR Act 2013
+7. **Dataset Browser** — Raw data grid for all 14 database tables with search and pagination
+8. **District Verification Queue** — Parcel verification workflow with approve/dispute actions
+9. **Compensation Desk** — Full compensation → payment → possession chain with audit logging
+10. **R&R Management** — Rehabilitation & Resettlement tracking with family-level benefit status
+11. **Citizen Transparency Portal** — Track status, compensation, R&R, and documents (English + Hindi)
+12. **Mobile Field Officer** — GPS capture, photo upload, bottom tab bar navigation
+13. **Audit Trail** — Complete timeline of all stage changes with officer names and timestamps
+14. **Report Exports** — One-click CSV download for Project MIS, Compensation, and GIS Parcel reports
+15. **Role-Switch Demo Mode** — Quick account switcher for demos
+
+## 🤖 ML Endpoints
+
+The backend includes a trained logistic regression model for **land-nature screening** — predicting whether a parcel is private or government-owned based on village, area, survey number patterns, and party count.
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/v1/ml/health` | GET | Staff | Model status and metadata |
+| `/api/v1/ml/land-nature/predict` | POST | Staff | Predict land nature from manual input |
+| `/api/v1/ml/parcels/{id}/land-nature` | GET | Staff | Predict for an existing parcel |
+| `/api/v1/ml/staging/summary` | GET | Staff | Staging record counts and villages |
+| `/api/v1/ml/staging/parcels` | GET | Staff | Paginated staging parcels with filters |
+| `/api/v1/ml/staging/parcels/{id}/parties` | GET | Staff | Parties for a staging parcel |
+| `/api/v1/ml/staging/promote` | POST | Admin | Promote staging parcels into a project |
+| `/api/v1/ml/ingest` | POST | Admin | Trigger bhoomirashi workbook ingestion |
+
+### Example: Predict land nature
+
+```bash
+curl -X POST http://localhost:8000/api/v1/ml/land-nature/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "village": "Kanjiama",
+    "area_hectares": 0.15,
+    "survey_number": "242",
+    "party_count": 3,
+    "land_type": "wet"
+  }'
+```
+
+Response:
+```json
+{
+  "prediction": "private",
+  "confidence": 0.9939,
+  "explanation": {
+    "factors": [
+      {"name": "village", "value": "Kanjiama"},
+      {"name": "area_hectares", "value": 0.15},
+      {"name": "survey_number_head", "value": "242"},
+      {"name": "party_count", "value": 3}
+    ]
+  },
+  "disclaimer": "This is a decision-support aid. Final determination requires field verification."
+}
+```
+
+## 📦 Dataset Browser API
+
+Browse all 14 raw database tables via a single paginated endpoint:
+
+```bash
+# List all parcels (page 1, 25 per page)
+curl -b cookies.txt "http://localhost:8000/api/v1/datasets?table=parcels&page=1&page_size=25"
+
+# Get row counts for all tables
+curl -b cookies.txt http://localhost:8000/api/v1/datasets/summary
+```
+
+Available tables: `projects`, `parcels`, `users`, `compensations`, `payments`, `states`, `districts`, `villages`, `ministries`, `categories`, `documents`, `land_owners`, `rr_families`, `roles`
+
+## 📊 New Dashboards
+
+### BhoomiRashi Portal (`/admin/bhoomirashi`)
+
+Staging hub for ingesting official gazette land records (MoRTH S.O. 1988E) into the acquisition pipeline:
+- **4 KPI cards**: Parsed parcels, identified owners, private/government split, total area in hectares + acres
+- **Data table**: 9-column staging schedule with bilingual survey numbers, village/sub-district, area, land type, land nature, owner count
+- **Filters**: Village dropdown, land nature (Private/Government), text search
+- **Party inspector**: Click "View Parties →" to see owner names, addresses, and indicated shares in a modal
+- **Ingest trigger**: "Reload Datasheet" button re-parses the bhoomirashi Excel workbook
+- **Promote workflow**: Select staging parcels → choose target project → promote into active LandParcel + LandOwner records
+
+### Compensation Report (`/admin/compensation-report`)
+
+Comprehensive compensation analysis under RFCTLARR Act, 2013:
+- **4 KPI cards**: Total assessments, total market value, total award value, total disbursed
+- **3 charts**: Status distribution (pie), Top 5 awards (horizontal bar), Payment disbursement status (pie)
+- **Detailed breakdown table**: Parcel, market value, solatium (100%), additional compensation, total award, status badge, disbursed amount
+- **Legal framework reference**: Section 26 market value, Section 30(1) solatium, Section 30(3) additional 12% p.a.
+
+### Dataset Browser (`/admin/datasets`)
+
+Raw data explorer for all 14 NLAMS database tables:
+- **14 table selector cards**: Click any table to view its data — shows icon, label, and live row count
+- **Dynamic data grid**: Auto-generates columns from the table schema with smart formatting (dates, currency, percentages, booleans)
+- **Search**: Text search on name/email/survey-number fields
+- **Pagination**: Page navigation with prev/next and numbered page buttons
+- **Currently loaded data**: 1 project, 249 parcels, 6 users, 961 land owners, 6 villages, 1 state, 1 district
 
 ## 🏷️ Demo Mode
 
@@ -202,9 +301,52 @@ cat backup_20240101.sql | docker compose exec -T postgres psql -U nlams nlams_db
 
 ## 🌐 Internationalization
 
-Citizen-facing pages support English and Hindi. Toggle language via the topbar button when logged in as a citizen.
+Citizen-facing pages support English and Hindi via react-i18next. Toggle language via the topbar button when logged in as a citizen.
 
 To add a new locale:
 1. Create `frontend/src/i18n/locales/{lang}.json`
 2. Add the locale to `frontend/src/i18n/index.ts` resources
 3. Add `useTranslation()` calls to new pages
+
+## 🧪 Testing
+
+| Layer | Tool | Count |
+|-------|------|-------|
+| Backend unit tests | pytest + pytest-asyncio | 19 (15 pass, 4 skip w/o DB) |
+| Frontend unit tests | Vitest | 111 |
+| E2E tests | Playwright | 14 |
+| **Total** | | **144** |
+
+### Running tests locally
+```bash
+# Backend
+cd backend && python -m pytest tests/ -v
+
+# Frontend
+cd frontend && npx vitest run
+
+# E2E (requires backend + frontend running)
+cd frontend && npx playwright test
+```
+
+### CI Pipeline
+The GitHub Actions workflow (`.github/workflows/sih_workflow.yml`) runs on every PR:
+1. **Backend lint** — ruff check + format + mypy
+2. **Backend test** — pytest against PostGIS service container
+3. **Backend build** — Docker image build
+4. **Frontend lint** — TypeScript + ESLint
+5. **Frontend test** — Vitest
+6. **Frontend build** — Vite production build
+7. **E2E tests** — Playwright against real backend + seeded DB
+8. **Migration reversibility** — alembic upgrade/downgrade cycle
+9. **Schema drift check** — diff alembic state vs schema.sql
+10. **Docker Compose smoke test** — full stack startup
+
+## 🔒 Security
+
+- **JWT in httpOnly cookies** (not localStorage) with Secure + SameSite=Strict
+- **Token revocation** — server-side denylist for logout + refresh token rotation
+- **Rate limiting** — slowapi on login, register, forgot-password, and refresh endpoints
+- **CORS** — explicit origin allowlist with credentials
+- **Structured logging** — every request logs request_id, user_id, latency
+- **Dependency audit** — npm audit (0 vulnerabilities) + pip-audit (1 accepted risk: ecdsa side-channel)
