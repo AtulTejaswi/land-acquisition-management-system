@@ -1,15 +1,15 @@
-fastapi==0.115.0
-starlette>=0.36,<0.40  # Pin for FastAPI 0.115.x compat
-uvicorn[standard]==0.30.6
+fastapi==0.133.0
+starlette>=1.1.0  # CVE fixes: PYSEC-2026-161, -248, -249, -1941, -1943, -2280, -2281
+uvicorn[standard]==0.34.0
 sqlalchemy[asyncio]==2.0.35
 asyncpg==0.30.0
 alembic==1.14.0
 pydantic==2.10.0
 pydantic-settings==2.6.0
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.5.0  # CVE fixes: PYSEC-2024-232, -233, PYSEC-2025-185 + pyasn1 upgrade
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-python-multipart==0.0.12
+python-multipart==0.0.31  # CVE fixes: PYSEC-2026-1851, -1852, -3036, -3037, -3038, -3039, -3040
 python-dateutil==2.9.0
 faker==30.8.2
 geoalchemy2==0.15.2
