@@ -15,7 +15,18 @@ vi.mock('@/services/api', () => ({
   },
 }));
 
+// Mock the auth service so getMe returns the cached user
+vi.mock('@/services/auth', () => ({
+  authService: {
+    login: vi.fn(),
+    logout: vi.fn(),
+    getMe: vi.fn(),
+    forgotPassword: vi.fn(),
+  },
+}));
+
 import api from '@/services/api';
+import { authService } from '@/services/auth';
 
 const mockDashboardData = {
   kpis: [
@@ -66,19 +77,21 @@ describe('District Officer Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.setItem('nlams_access_token', 'mock-token');
-    localStorage.setItem('nlams_user', JSON.stringify({
+    const mockUser = {
       id: 'do1',
-      full_name: 'Suresh Patil',
-      email: 'suresh@nagpur.gov.in',
+      full_name: 'Suresh Mohanty',
+      email: 'suresh@khordha.gov.in',
       phone: '9876543211',
       role_name: 'district_officer',
       state_id: 's1',
-      state_name: 'Maharashtra',
+      state_name: 'Odisha',
       district_id: 'd1',
-      district_name: 'Nagpur',
+      district_name: 'Khordha',
       agency_name: null,
       is_active: true,
-    }));
+    };
+    localStorage.setItem('nlams_user', JSON.stringify(mockUser));
+    (authService.getMe as any).mockResolvedValue(mockUser);
 
     (api.get as any).mockImplementation((url: string) => {
       if (url.includes('/dashboard/district')) return Promise.resolve({ data: mockDashboardData });

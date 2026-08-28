@@ -5,6 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '../store/AuthContext';
 import TrackStatus from '../pages/citizen/TrackStatus';
 
+// Mock react-i18next to return translation keys as values
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+    i18n: { language: 'en', changeLanguage: vi.fn() },
+  }),
+  Trans: ({ children }: any) => children,
+}));
+
 // Mock the API module - use absolute path to match both test and component imports
 vi.mock('@/services/api', () => ({
   default: {
@@ -13,7 +22,18 @@ vi.mock('@/services/api', () => ({
   },
 }));
 
+// Mock the auth service so getMe returns the cached user
+vi.mock('@/services/auth', () => ({
+  authService: {
+    login: vi.fn(),
+    logout: vi.fn(),
+    getMe: vi.fn(),
+    forgotPassword: vi.fn(),
+  },
+}));
+
 import api from '@/services/api';
+import { authService } from '@/services/auth';
 
 const mockParcels = {
   items: [
@@ -75,21 +95,21 @@ function renderWithAuth(ui: React.ReactElement, initialEntries: string[]) {
 describe('Citizen Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set up logged-in citizen in localStorage
-    localStorage.setItem('nlams_access_token', 'mock-token');
-    localStorage.setItem('nlams_user', JSON.stringify({
+    const mockUser = {
       id: 'c1',
-      full_name: 'Ganesh Kumar',
+      full_name: 'Ganesh Pattnaik',
       email: 'ganesh@email.com',
       phone: '9876543210',
       role_name: 'citizen',
       state_id: 's1',
-      state_name: 'Maharashtra',
+      state_name: 'Odisha',
       district_id: 'd1',
-      district_name: 'Nagpur',
+      district_name: 'Khordha',
       agency_name: null,
       is_active: true,
-    }));
+    };
+    localStorage.setItem('nlams_user', JSON.stringify(mockUser));
+    (authService.getMe as any).mockResolvedValue(mockUser);
 
     // Mock all three API calls that TrackStatus makes
     (api.get as any).mockImplementation((url: string) => {
@@ -108,8 +128,8 @@ describe('Citizen Flow', () => {
       ['/citizen/track'],
     );
 
-    expect(screen.getByText(/Track Your Status/)).toBeInTheDocument();
-    expect(screen.getByText(/Citizen Transparency Portal/)).toBeInTheDocument();
+    expect(screen.getByText(/citizen\.trackStatus\.title/)).toBeInTheDocument();
+    expect(screen.getAllByText(/citizen\.trackStatus\.portal/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders parcel data after loading', async () => {
@@ -144,7 +164,7 @@ describe('Citizen Flow', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('No parcels linked to your account yet')).toBeInTheDocument();
+      expect(screen.getByText('citizen.trackStatus.noParcels')).toBeInTheDocument();
     }, { timeout: 5000 });
   });
 });

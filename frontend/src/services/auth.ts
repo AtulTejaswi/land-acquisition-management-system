@@ -1,10 +1,8 @@
 import api from './api';
 
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
   user: User;
+  token_type: string;
 }
 
 export interface User {
@@ -30,13 +28,16 @@ export const authService = {
     const { data } = await api.get('/auth/me');
     return data;
   },
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // Best-effort — server clears cookies even if body parsing fails
+    }
+    localStorage.removeItem('nlams_user');
+  },
   forgotPassword: async (email: string) => {
     const { data } = await api.post('/auth/forgot-password', { email });
     return data;
-  },
-  logout: () => {
-    localStorage.removeItem('nlams_access_token');
-    localStorage.removeItem('nlams_refresh_token');
-    localStorage.removeItem('nlams_user');
   },
 };

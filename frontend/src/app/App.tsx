@@ -22,6 +22,9 @@ import ReportsPage from '../pages/admin/ReportsPage';
 import GISMapPage from '../pages/admin/GISMapPage';
 import NotificationsPage from '../pages/admin/NotificationsPage';
 import SettingsPage from '../pages/admin/Settings';
+import BhoomiRashiPortal from '../pages/admin/BhoomiRashiPortal';
+import CompensationReportPage from '../pages/admin/CompensationReportPage';
+import DatasetPage from '../pages/admin/DatasetPage';
 
 // State
 import StateDashboard from '../pages/state/StateDashboard';
@@ -91,6 +94,9 @@ function AppRoutes() {
         <Route path="gis" element={<GISMapPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="bhoomirashi" element={<BhoomiRashiPortal />} />
+        <Route path="compensation-report" element={<CompensationReportPage />} />
+        <Route path="datasets" element={<DatasetPage />} />
       </Route>
 
       {/* State */}

@@ -14,10 +14,18 @@ const VERIFICATION_COLORS: Record<string, string> = {
   acquired: '#3B82F6',
 };
 
+const OWNERSHIP_COLORS: Record<string, string> = {
+  private: '#8B5CF6',
+  govt: '#F97316',
+  disputed: '#EF4444',
+  common: '#06B6D4',
+};
+
 export default function GISMapPage() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
   const [selectedParcel, setSelectedParcel] = useState<any>(null);
+  const [colorBy, setColorBy] = useState<'verification' | 'ownership'>('verification');
 
   const { data: geojsonData } = useQuery({
     queryKey: ['gis-parcels'],
@@ -30,11 +38,13 @@ export default function GISMapPage() {
   useEffect(() => {
     if (!mapContainer.current) return undefined;
 
+    // Center on Khordha, Odisha (where the real data is)
+    // Using OpenFreeMap — free vector tiles, no API key, no registration
     const instance = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      center: [79.0882, 21.1458],
-      zoom: 5,
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center: [85.6226, 20.1863], // Khordha, Odisha
+      zoom: 11,
     });
 
     instance.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -48,12 +58,16 @@ export default function GISMapPage() {
     };
   }, []);
 
+  const colors = colorBy === 'verification' ? VERIFICATION_COLORS : OWNERSHIP_COLORS;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">GIS Parcel Map</h1>
-          <p className="text-slate-500 text-sm">Visualize land parcels on interactive map</p>
+          <p className="text-slate-500 text-sm">
+            Khordha District, Odisha — Village-level parcel locations (approximate markers, not surveyed boundaries)
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
@@ -63,14 +77,35 @@ export default function GISMapPage() {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex gap-4 items-center text-xs">
-        {Object.entries(VERIFICATION_COLORS).map(([status, color]) => (
+      {/* Legend — toggleable between verification and ownership */}
+      <div className="flex flex-wrap gap-4 items-center text-xs">
+        <div className="flex items-center gap-2 mr-4">
+          <button
+            onClick={() => setColorBy('verification')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+              colorBy === 'verification' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Verification
+          </button>
+          <button
+            onClick={() => setColorBy('ownership')}
+            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+              colorBy === 'ownership' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Ownership
+          </button>
+        </div>
+        {Object.entries(colors).map(([status, color]) => (
           <div key={status} className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
             <span className="text-slate-600 capitalize">{status}</span>
           </div>
         ))}
+        <span className="text-slate-400 text-[10px] ml-2">
+          ⚠️ Markers are village-level approximations
+        </span>
       </div>
 
       <div className="flex gap-4 h-[calc(100vh-280px)]">
@@ -82,6 +117,7 @@ export default function GISMapPage() {
             geojsonData={geojsonData}
             mapLoaded={!!map}
             onSelectParcel={setSelectedParcel}
+            colorBy={colorBy}
           />
         </div>
 
@@ -105,6 +141,12 @@ export default function GISMapPage() {
                 <span className="text-slate-500">Survey No:</span>
                 <span className="font-medium ml-1">{selectedParcel.survey_number}</span>
               </div>
+              {selectedParcel.survey_number_or && (
+                <div>
+                  <span className="text-slate-500">Survey No (Odia):</span>
+                  <span className="font-medium ml-1">{selectedParcel.survey_number_or}</span>
+                </div>
+              )}
               <div>
                 <span className="text-slate-500">Area:</span>
                 <span className="font-medium ml-1">{selectedParcel.area_hectares} ha</span>
@@ -128,11 +170,28 @@ export default function GISMapPage() {
                 </span>
               </div>
               <div>
+                <span className="text-slate-500">Ownership:</span>
+                <span className="font-medium ml-1 capitalize">
+                  {selectedParcel.ownership_status}
+                </span>
+              </div>
+              <div>
                 <span className="text-slate-500">Status:</span>
                 <span className="font-medium ml-1 capitalize">
                   {selectedParcel.verification_status}
                 </span>
               </div>
+              {selectedParcel.owner_count !== undefined && (
+                <div>
+                  <span className="text-slate-500">Owners:</span>
+                  <span className="font-medium ml-1">
+                    {selectedParcel.owner_count}
+                    {selectedParcel.owner_count > 1 && (
+                      <span className="text-xs text-slate-400 ml-1">(co-owned)</span>
+                    )}
+                  </span>
+                </div>
+              )}
               <Button variant="outline" size="sm" className="w-full mt-2">
                 View Documents
               </Button>

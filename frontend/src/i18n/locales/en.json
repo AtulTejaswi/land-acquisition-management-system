@@ -1,0 +1,81 @@
+{
+  "citizen": {
+    "trackStatus": {
+      "title": "🔍 Track Your Status",
+      "subtitle": "Monitor your land acquisition and compensation status in real-time",
+      "portal": "Citizen Transparency Portal",
+      "portalDesc": "You can track every step of the acquisition process here",
+      "landParcels": "My Land Parcels",
+      "noParcels": "No parcels linked to your account yet",
+      "compensationStatus": "💰 Compensation Status",
+      "noCompensation": "No compensation records yet",
+      "paymentStatus": "🏦 Payment Status",
+      "noPayments": "No payment records yet",
+      "surveyNo": "Survey No:",
+      "area": "Area:",
+      "hectares": "hectares",
+      "type": "Type",
+      "parcelId": "Parcel ID:",
+      "marketValue": "Market Value:",
+      "solatium": "Solatium:",
+      "pfmsRef": "PFMS Ref:",
+      "bankVerification": "Bank Verification:"
+    },
+    "myCompensation": {
+      "title": "💰 My Compensation",
+      "subtitle": "View your compensation awards and payment history",
+      "totalAwarded": "Total Awarded",
+      "totalDisbursed": "Total Disbursed",
+      "pending": "Pending",
+      "compensationAwards": "Compensation Awards",
+      "noRecords": "No compensation records",
+      "noRecordsDesc": "Compensation will appear here once assessed by the district authority.",
+      "awardAmount": "Award Amount:",
+      "additional": "Additional:",
+      "assessed": "Assessed:",
+      "paymentHistory": "🏦 Payment History",
+      "noPayments": "No payments yet",
+      "noPaymentsDesc": "Payment disbursement information will appear here.",
+      "disbursed": "Disbursed:"
+    },
+    "myRR": {
+      "title": "🏘️ My Rehabilitation & Resettlement",
+      "subtitle": "Track your R&R entitlements, benefits, and resettlement progress",
+      "noRecords": "No R&R records found",
+      "noRecordsDesc": "Your rehabilitation and resettlement records will appear here once created by the district authority.",
+      "familyId": "Family ID:",
+      "members": "members",
+      "overallProgress": "Overall Progress"
+    },
+    "myDocuments": {
+      "title": "📄 My Documents",
+      "subtitle": "View and download your uploaded documents"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "close": "Close",
+    "search": "Search...",
+    "noData": "No data available",
+    "language": "Language"
+  },
+  "nav": {
+    "home": "Home",
+    "track": "Track Status",
+    "compensation": "Compensation",
+    "rr": "R&R",
+    "documents": "Documents",
+    "notifications": "Notifications",
+    "logout": "Logout",
+    "profile": "Profile"
+  }
+}

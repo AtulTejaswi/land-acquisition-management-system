@@ -40,6 +40,30 @@ jobs:
 
       - name: MyPy
         run: mypy app/ --ignore-missing-imports --no-strict-optional
+
+  backend-security:
+    name: Backend — Dependency Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pip-audit
+
+      - name: pip-audit
+        run: pip-audit --strict
         continue-on-error: true
 
   backend-test:
@@ -84,7 +108,6 @@ jobs:
 
       - name: Run unit tests
         run: pytest tests/ -v --tb=short --no-header
-        continue-on-error: true
 
   backend-build:
     name: Backend — Docker Build
@@ -120,6 +143,29 @@ jobs:
       - name: ESLint
         run: npx eslint src/ --max-warnings=50
 
+  frontend-security:
+    name: Frontend — Dependency Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   frontend-test:
     name: Frontend — Unit Tests
     runs-on: ubuntu-latest
@@ -142,7 +188,6 @@ jobs:
 
       - name: Run tests
         run: npx vitest run
-        continue-on-error: true
 
   frontend-build:
     name: Frontend — Docker Build & Vite Build
@@ -173,6 +218,215 @@ jobs:
           name: frontend-dist
           path: frontend/dist/
           retention-days: 30
+
+  backend-migrations:
+    name: Backend — Migrations Reversible
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_DB: nlams_mig_test
+          POSTGRES_USER: nlams_mig
+          POSTGRES_PASSWORD: nlams_mig
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U nlams_mig -d nlams_mig_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql+asyncpg://nlams_mig:nlams_mig@localhost:5432/nlams_mig_test
+      SYNC_DATABASE_URL: postgresql://nlams_mig:nlams_mig@localhost:5432/nlams_mig_test
+      SECRET_KEY: test-migration-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Enable PostGIS extension
+        run: psql "postgresql://nlams_mig:nlams_mig@localhost:5432/nlams_mig_test" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+      - name: Upgrade to head
+        run: alembic upgrade head
+
+      - name: Downgrade to base
+        run: alembic downgrade base
+
+      - name: Re-upgrade to head
+        run: alembic upgrade head
+
+      - name: Verify downgrade is idempotent
+        run: alembic downgrade base
+
+  backend-schema-drift:
+    name: Backend — Schema Drift Check
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_DB: nlams_drift
+          POSTGRES_USER: nlams_drift
+          POSTGRES_PASSWORD: nlams_drift
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U nlams_drift -d nlams_drift"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql+asyncpg://nlams_drift:nlams_drift@localhost:5432/nlams_drift
+      SYNC_DATABASE_URL: postgresql://nlams_drift:nlams_drift@localhost:5432/nlams_drift
+      SECRET_KEY: test-drift-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Enable PostGIS extension
+        run: psql "postgresql://nlams_drift:nlams_drift@localhost:5432/nlams_drift" -c "CREATE EXTENSION IF NOT EXISTS postgis;" && psql "postgresql://nlams_drift:nlams_drift@localhost:5432/nlams_drift" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+
+      - name: Upgrade to head
+        run: alembic upgrade head
+
+      - name: Dump schema from DB
+        run: |
+          pg_dump --schema-only --no-owner --no-privileges \
+            "postgresql://nlams_drift:nlams_drift@localhost:5432/nlams_drift" \
+            | grep -v '^--' | grep -v '^$' | sed 's/nlams_drift/nlams/g' > /tmp/db_schema.sql
+
+      - name: Diff against schema.sql
+        run: |
+          # Normalize schema.sql for comparison (strip comments, blank lines)
+          cat schema.sql | grep -v '^--' | grep -v '^$' | sed 's/nlams/nlams/g' > /tmp/ref_schema.sql
+          if ! diff -u /tmp/ref_schema.sql /tmp/db_schema.sql; then
+            echo ""
+            echo "⚠️  schema.sql has drifted from Alembic migrations."
+            echo "Please regenerate schema.sql:"
+            echo "  pg_dump --schema-only ... > schema.sql"
+            echo ""
+            # Only fail on structural differences (table/index differences)
+            # Ignore ordering, whitespace, and comment differences
+            echo "NOTE: This is advisory until schema.sql is regenerated."
+          fi
+
+  frontend-e2e:
+    name: Frontend — E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [frontend-test, backend-test]
+    defaults:
+      run:
+        working-directory: frontend
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_DB: nlams_e2e
+          POSTGRES_USER: nlams_e2e
+          POSTGRES_PASSWORD: nlams_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U nlams_e2e -d nlams_e2e"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DATABASE_URL: postgresql+asyncpg://nlams_e2e:nlams_e2e@localhost:5432/nlams_e2e
+      SYNC_DATABASE_URL: postgresql://nlams_e2e:nlams_e2e@localhost:5432/nlams_e2e
+      SECRET_KEY: e2e-test-secret-key
+      ENVIRONMENT: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Enable PostGIS & seed database
+        working-directory: backend
+        run: |
+          psql "postgresql://nlams_e2e:nlams_e2e@localhost:5432/nlams_e2e" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          psql "postgresql://nlams_e2e:nlams_e2e@localhost:5432/nlams_e2e" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+          python -m app.seed
+
+      - name: Start backend server
+        working-directory: backend
+        run: uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install chromium --with-deps
+
+      - name: Start frontend dev server
+        working-directory: frontend
+        run: npx vite --host 0.0.0.0 --port 5173 &
+
+      - name: Wait for services
+        run: |
+          for i in $(seq 1 30); do curl -s http://localhost:8000/api/health > /dev/null 2>&1 && break; sleep 2; done
+          for i in $(seq 1 30); do curl -s http://localhost:5173 > /dev/null 2>&1 && break; sleep 2; done
+
+      - name: Run Playwright E2E tests
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
 
   docker-compose-smoke:
     name: Docker Compose — Smoke Test

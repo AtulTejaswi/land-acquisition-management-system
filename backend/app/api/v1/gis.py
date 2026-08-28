@@ -4,6 +4,9 @@ from typing import Optional
 import json
 import uuid
 
+from geoalchemy2.shape import to_shape
+from shapely.geometry import mapping
+
 from app.db.session import get_db
 from app.models.land import LandParcel
 from app.models.user import User
@@ -49,8 +52,8 @@ async def get_single_parcel_geojson(
     geom = None
     if parcel.geom:
         try:
-            geom = json.loads(parcel.geom) if isinstance(parcel.geom, str) else parcel.geom
-        except (json.JSONDecodeError, TypeError):
+            geom = mapping(to_shape(parcel.geom))
+        except Exception:
             geom = None
 
     return {
@@ -70,6 +73,84 @@ async def get_single_parcel_geojson(
             "village_name": parcel.village.name if parcel.village else None,
             "district_name": parcel.district.name if parcel.district else None,
         },
+    }
+
+
+@router.get("/parcels/nearby")
+async def get_parcels_nearby(
+    lat: float = Query(..., description="Latitude of search center"),
+    lng: float = Query(..., description="Longitude of search center"),
+    radius_km: float = Query(10.0, description="Search radius in kilometres"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Find parcels within *radius_km* of a point using PostGIS spatial index.
+
+    Uses ``ST_DWithin`` with geography cast so the radius is in metres.
+    """
+    from sqlalchemy import select, text
+    from sqlalchemy.orm import selectinload
+    from shapely.geometry import mapping as shapely_mapping
+
+    # ST_DWithin with geography types gives distance in metres
+    radius_m = radius_km * 1000
+
+    query = (
+        select(LandParcel)
+        .where(LandParcel.is_deleted == False)
+        .where(
+            text(
+                "ST_DWithin(geom::geography, "
+                "ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, "
+                ":radius)"
+            )
+        )
+        .options(
+            selectinload(LandParcel.village),
+            selectinload(LandParcel.district),
+            selectinload(LandParcel.state),
+        )
+    )
+
+    result = await db.execute(query, {"lng": lng, "lat": lat, "radius": radius_m})
+    parcels = result.scalars().unique().all()
+
+    features = []
+    for parcel in parcels:
+        geom = None
+        if parcel.geom:
+            try:
+                geom = shapely_mapping(to_shape(parcel.geom))
+            except Exception:
+                geom = None
+        features.append(
+            {
+                "type": "Feature",
+                "id": str(parcel.id),
+                "geometry": geom,
+                "properties": {
+                    "id": str(parcel.id),
+                    "survey_number": parcel.survey_number,
+                    "area_hectares": float(parcel.area_hectares)
+                    if parcel.area_hectares
+                    else None,
+                    "land_type": parcel.land_type.value
+                    if hasattr(parcel.land_type, "value")
+                    else str(parcel.land_type),
+                    "verification_status": parcel.verification_status.value
+                    if hasattr(parcel.verification_status, "value")
+                    else str(parcel.verification_status),
+                    "village_name": parcel.village.name if parcel.village else None,
+                    "district_name": parcel.district.name if parcel.district else None,
+                    "state_name": parcel.state.name if parcel.state else None,
+                },
+            }
+        )
+
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "search": {"lat": lat, "lng": lng, "radius_km": radius_km},
     }
 
 

@@ -5,10 +5,14 @@ from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
 
+from geoalchemy2.shape import from_shape
+from shapely.geometry import shape
+
 from app.db.session import get_db
 from app.models.land import LandParcel, LandOwner
 from app.models.state import Village, District, State
 from app.models.user import User
+from app.models.audit import AuditLog
 from app.core.deps import require_role, get_current_user
 from app.schemas.parcel import (
     ParcelCreate,
@@ -18,6 +22,30 @@ from app.schemas.parcel import (
     LandOwnerCreate,
     LandOwnerResponse,
 )
+
+
+def _geojson_to_geom(geojson) -> Optional[str]:
+    """Convert a GeoJSON geometry dict to a PostGIS WKBElement, or None."""
+    if geojson is None:
+        return None
+    try:
+        return from_shape(shape(geojson), srid=4326)
+    except Exception:
+        return None
+
+
+async def _audit_sensitive_read(
+    db: AsyncSession, entity_id: uuid.UUID, actor_id: uuid.UUID
+) -> None:
+    """Log access to sensitive owner data for audit trail."""
+    audit = AuditLog(
+        entity_type="land_owner",
+        entity_id=entity_id,
+        action="read",
+        performed_by=actor_id,
+        remarks="Sensitive data access (bank/Aadhaar)",
+    )
+    db.add(audit)
 
 router = APIRouter(prefix="/parcels", tags=["parcels"])
 
@@ -138,7 +166,7 @@ async def create_parcel(
         district_id=data.district_id,
         state_id=data.state_id,
         area_hectares=data.area_hectares,
-        geom=data.geom,
+        geom=_geojson_to_geom(data.geom),
         land_type=data.land_type,
         ownership_status=data.ownership_status,
     )
@@ -202,7 +230,12 @@ async def list_owners(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(LandOwner).where(LandOwner.parcel_id == parcel_id))
-    return result.scalars().all()
+    owners = result.scalars().all()
+    # Audit log: reading owner data includes sensitive fields
+    for owner in owners:
+        await _audit_sensitive_read(db, owner.id, current_user.id)
+    await db.flush()
+    return owners
 
 
 @router.post(

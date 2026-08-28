@@ -1,0 +1,63 @@
+version: '3.8'
+
+# Production compose — excludes adminer, dev volumes, and --reload
+# Usage: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: nlams_db
+      POSTGRES_USER: nlams
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nlams -d nlams_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # No port mapping in production — only accessible from backend service
+    expose:
+      - "5432"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nlams:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/nlams_db
+      SYNC_DATABASE_URL: postgresql://nlams:${POSTGRES_PASSWORD:-changeme_in_production}@postgres:5432/nlams_db
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      ENVIRONMENT: production
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: ${CORS_ORIGINS:-["https://nlams.example.gov.in"]}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SMS_PROVIDER: ${SMS_PROVIDER:-mock}
+      MSG91_API_KEY: ${MSG91_API_KEY:-}
+    volumes:
+      - upload_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command: >
+      sh -c "python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  upload_data:

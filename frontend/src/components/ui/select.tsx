@@ -11,6 +11,7 @@ const SelectTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
+    aria-labelledby={props['aria-labelledby']}
     className={cn(
       'flex h-10 w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm',
       'placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500',

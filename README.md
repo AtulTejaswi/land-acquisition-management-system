@@ -47,8 +47,8 @@ npm run dev  # Start on port 5173
 | Role | Email | Password |
 |------|-------|----------|
 | 🔑 Super Admin | rajesh@nlams.gov.in | password123 |
-| 🏛️ State Authority | anil@maharashtra.gov.in | password123 |
-| 📋 District Officer | suresh@nagpur.gov.in | password123 |
+| 🏛️ State Authority | anil@odisha.gov.in | password123 |
+| 📋 District Officer | suresh@khordha.gov.in | password123 |
 | 🏗️ Agency | agency@nhai.gov.in | password123 |
 | 📱 Field Officer | rahul.f@nlams.gov.in | password123 |
 | 👤 Citizen | ganesh@email.com | password123 |
@@ -57,20 +57,21 @@ npm run dev  # Start on port 5173
 
 ### 1. Login as Super Admin (1 min)
 - Click "🔑 Super Admin" quick login button
-- Show **National Dashboard** with KPIs, charts, India heatmap
-- Click on a state in the heatmap → drill into state view
+- Show **National Dashboard** with real KPIs from Odisha (Khordha) data
+- See parcel counts, area breakdown, ownership split, co-ownership distribution
+- Shows "1 state onboarded" with real bhoomirashi land-record data
 
-### 2. Project Lifecycle (1.5 min)
-- Navigate to Projects → Click "NH-44 Widening — Nagpur to Betul"
-- Show the **14-stage lifecycle stepper** (completed stages in green, current pulsing)
-- Scroll down to **Full Audit Trail Timeline** with timestamps and officer names
-- Highlight the **AI Insights panel** (delay prediction, risk score, missing docs)
-
-### 3. GIS Map (1 min)
+### 2. GIS Map (1 min)
 - Navigate to GIS Map
-- Show interactive MapLibre map with colored parcel polygons
-- Click a parcel → side drawer with details
-- Show verification status legend
+- Show interactive MapLibre map centered on Khordha, Odisha
+- Village-level markers with parcel counts (toggle verification/ownership colors)
+- Click a marker → side drawer with survey number, area, ownership, owner list
+- Note: markers are village-level approximations, not surveyed boundaries
+
+### 3. State Dashboard (1 min)
+- Navigate to State Dashboard (Odisha)
+- See real charts: parcels by village (6 villages), area by village, ownership split
+- Drill into district view for Khordha
 
 ### 4. Citizen Portal (30 sec)
 - Logout → Login as Citizen
@@ -164,3 +165,46 @@ nlams/
 ## 🏷️ Demo Mode
 
 All external services (SMS, PFMS, DigiLocker, e-Sign) run in **Sandbox/Demo Mode** — clearly labeled in the UI. PFMS references are auto-generated mock IDs. This is intentional for the hackathon demo.
+
+Toggle SMS provider via `SMS_PROVIDER` env var: `mock` (default) or `msg91`.
+
+## 🚢 Production Deployment
+
+```bash
+# Copy and edit environment file
+cp .env.example .env.production
+# Edit .env.production with real secrets (SECRET_KEY, ENCRYPTION_KEY, POSTGRES_PASSWORD)
+
+# Deploy
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+```
+
+Production mode excludes adminer, enables structured JSON logging, Sentry error tracking, and Prometheus metrics.
+
+## 🗄️ Database Backup & Restore
+
+```bash
+# Backup
+docker compose exec postgres pg_dump -U nlams nlams_db > backup_$(date +%Y%m%d).sql
+
+# Restore
+cat backup_20240101.sql | docker compose exec -T postgres psql -U nlams nlams_db
+
+# Point-in-time recovery requires WAL archiving (see PostgreSQL docs)
+```
+
+## 📊 Monitoring
+
+- **Structured JSON logs**: Every request logs `request_id`, `user_id`, `method`, `path`, `status_code`, `latency_ms`
+- **Health checks**: `GET /api/health` (liveness), `GET /api/health/ready` (readiness with DB check)
+- **Prometheus metrics**: Scrape `GET /metrics` for request count, latency histograms, and error rates
+- **Sentry**: Set `SENTRY_DSN` env var to enable error tracking (off by default)
+
+## 🌐 Internationalization
+
+Citizen-facing pages support English and Hindi. Toggle language via the topbar button when logged in as a citizen.
+
+To add a new locale:
+1. Create `frontend/src/i18n/locales/{lang}.json`
+2. Add the locale to `frontend/src/i18n/index.ts` resources
+3. Add `useTranslation()` calls to new pages

@@ -1,3 +1,5 @@
+import hashlib
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
@@ -15,6 +17,11 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
+def hash_token(token: str) -> str:
+    """SHA-256 hash of a raw token string (used for DB storage)."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
@@ -24,11 +31,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token(data: dict) -> tuple[str, str, str]:
+    """Create a refresh token and return (raw_token, jti, expires_at_iso)."""
+    jti = str(uuid.uuid4())
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expires_at, "type": "refresh", "jti": jti})
+    raw_token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return raw_token, jti, expires_at.isoformat()
 
 
 def decode_token(token: str) -> Optional[dict]:

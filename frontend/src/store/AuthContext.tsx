@@ -3,51 +3,66 @@ import { User, authService } from '../services/auth';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   switchRole: (roleName: string) => void;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  token: null,
   login: async () => {},
-  logout: () => {},
+  logout: async () => {},
   switchRole: () => {},
   isLoading: true,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const justLoggedIn = React.useRef(false);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('nlams_access_token');
+    // If user was just set by login(), trust it and skip the /auth/me probe
+    if (justLoggedIn.current) {
+      justLoggedIn.current = false;
+      setIsLoading(false);
+      return;
+    }
+
+    // On mount, try to fetch user via cookie-based /auth/me
     const storedUser = localStorage.getItem('nlams_user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
+    if (storedUser) {
+      // Optimistic: show cached user immediately, then verify with server
       try {
         setUser(JSON.parse(storedUser));
-      } catch {}
+      } catch { /* ignore */ }
     }
-    setIsLoading(false);
+
+    authService
+      .getMe()
+      .then((u) => {
+        setUser(u);
+        localStorage.setItem('nlams_user', JSON.stringify(u));
+      })
+      .catch(() => {
+        // No valid cookie — clear cached user
+        setUser(null);
+        localStorage.removeItem('nlams_user');
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
     const response = await authService.login(email, password);
-    localStorage.setItem('nlams_access_token', response.access_token);
-    localStorage.setItem('nlams_refresh_token', response.refresh_token);
+    // Server sets httpOnly cookies; we only store the user object for UI
     localStorage.setItem('nlams_user', JSON.stringify(response.user));
-    setToken(response.access_token);
     setUser(response.user);
+    justLoggedIn.current = true;
   };
 
-  const logout = () => {
-    authService.logout();
-    setToken(null);
+  const logout = async () => {
+    await authService.logout();
     setUser(null);
   };
 
@@ -60,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, switchRole, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, switchRole, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

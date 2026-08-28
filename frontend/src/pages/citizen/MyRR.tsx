@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { EmptyState } from '../../components/shared/EmptyState';
@@ -8,6 +9,8 @@ import { StageProgress } from '../../components/rr/StageProgress';
 import { BenefitTracker } from '../../components/rr/BenefitTracker';
 
 export default function MyRR() {
+  const { t } = useTranslation();
+
   const { data: rrData, isLoading } = useQuery({
     queryKey: ['citizen-rr'],
     queryFn: async () => {
@@ -22,10 +25,10 @@ export default function MyRR() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-slate-900">
-          🏘️ My Rehabilitation & Resettlement
+          {t('citizen.myRR.title')}
         </h1>
         <p className="text-slate-500 text-sm">
-          Track your R&R entitlements, benefits, and resettlement progress
+          {t('citizen.myRR.subtitle')}
         </p>
       </motion.div>
 
@@ -40,8 +43,8 @@ export default function MyRR() {
           <CardContent className="p-12">
             <EmptyState
               icon="🏘️"
-              title="No R&R records found"
-              description="Your rehabilitation and resettlement records will appear here once created by the district authority."
+              title={t('citizen.myRR.noRecords')}
+              description={t('citizen.myRR.noRecordsDesc')}
             />
           </CardContent>
         </Card>
@@ -65,8 +68,8 @@ export default function MyRR() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Family ID: {family.family_id_number || '—'} • {family.member_count || 0}{' '}
-                  members
+                  {t('citizen.myRR.familyId')} {family.family_id_number || '—'} • {family.member_count || 0}{' '}
+                  {t('citizen.myRR.members')}
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -83,7 +86,7 @@ export default function MyRR() {
 
                 <div>
                   <div className="flex justify-between text-xs text-slate-500 mb-1">
-                    <span>Overall Progress</span>
+                    <span>{t('citizen.myRR.overallProgress')}</span>
                     <span className="tabular-nums">{family.progress_percentage || 0}%</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2">

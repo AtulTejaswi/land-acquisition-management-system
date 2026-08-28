@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://nlams:nlams_secret_2024@localhost:5432/nlams_db"
     SYNC_DATABASE_URL: str = "postgresql://nlams:nlams_secret_2024@localhost:5432/nlams_db"
     SECRET_KEY: str = ""
+    ENCRYPTION_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -27,6 +28,21 @@ class Settings(BaseSettings):
         "http://localhost",
     ]
     ENVIRONMENT: str = "development"
+    SENTRY_DSN: str = ""
+    SMS_PROVIDER: str = "mock"
+    MSG91_API_KEY: str = ""
+
+    # ML inference settings
+    ML_ENABLED: bool = True
+    ML_MODEL_PATH: str = os.environ.get(
+        "ML_MODEL_PATH",
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "app", "ml", "artifacts", "land_nature_model.joblib",
+        ),
+    )
+    ML_MODEL_VERSION: str = "1.0.0"
+    ML_INFERENCE_TIMEOUT_SECONDS: int = 10
 
     class Config:
         env_file = ".env"

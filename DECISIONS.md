@@ -95,3 +95,136 @@
 4. **Touch targets**: Added `min-h-[44px]` to mobile field-officer interactive elements (action links in MobileHome, buttons in MobileSurveys and MobileCamera). RoleShell bottom nav already had `min-w-[44px] min-h-[44px]`.
 5. **Keyboard navigation**: All forms use native `<form>` with `<button type="submit">`, ensuring Enter-key submission. No custom dropdown traps or modal focus issues found (Radix primitives handle focus management).
 **CI Integration:** Added `frontend-test` job to `.github/workflows/sih_workflow.yml` running `npx vitest run` after `frontend-lint`.
+
+## D18: Server-Side Refresh Token Revocation & Rotation
+**Decision:** Store issued refresh tokens in a `refresh_tokens` table with `jti`, `token_hash`, `revoked_at`, and `expires_at`. Implement rotation on every use, revocation on logout, and full-user revocation on logout-all.
+**Rationale:** The original demo issued stateless refresh tokens with no revocation mechanism. For pilot/production readiness, we need:
+1. **Rotation**: Each `/refresh` call issues a new refresh token and immediately revokes the old one, limiting replay window.
+2. **Revocation on logout**: `/logout` revokes a single refresh token; `/logout-all` (authenticated) revokes all active tokens for the user.
+3. **Reuse detection**: If a revoked token is presented, all tokens for that user are revoked (breach response).
+4. **Token hashing**: Only SHA-256 hashes are stored in DB; raw tokens are never persisted.
+**Schema change**: New `refresh_tokens` table (Alembic migration `002_refresh_tokens`).
+**Backward compatibility**: The refresh endpoint falls back to hash-based lookup for tokens issued before migration (no `jti` claim).
+
+## D19: Application-Level Encryption for Sensitive Fields
+**Decision:** Use `cryptography.Fernet` (AES-128-CBC) for encrypting Aadhaar and bank account fields at rest, with masked-only display in API responses.
+**Rationale:** India's DPDP Act requires "security safeguards" for personal data. Fernet provides authenticated encryption with minimal setup:
+1. **Encryption**: `aadhaar_masked` and `bank_account_masked` columns encrypted via `encrypt_field()` before DB write.
+2. **Masking**: API responses always show masked values (`XXXX-XXXX-NNNN`); full values only available to the owning citizen via a dedicated endpoint.
+3. **Key management**: `ENCRYPTION_KEY` env var; mandatory in production, auto-generated in dev.
+4. **Audit logging**: Every read of sensitive owner data creates an audit log entry with actor + timestamp.
+5. **Schema**: No DB migration needed — encrypted ciphertext stored in existing `VARCHAR(20)` columns (Fernet ciphertext fits within 200 chars, but we decrypt on read).
+**New files**: `app/utils/encryption.py`, `SECURITY.md`, `tests/test_data_protection.py`.
+
+## D20: Real PostGIS Geometry (replacing TEXT-based storage)
+**Decision:** Replace the TEXT/GeoJSON-string `geom` column with a proper PostGIS `GEOMETRY(Polygon, 4326)` column at the ORM level, enabling spatial indexing and native spatial queries.
+**Rationale:** The original D1 shortcut stored GeoJSON as a Python string representation, which prevented PostGIS from using spatial indexes. For production readiness:
+1. **ORM change**: `LandParcel.geom` now uses `geoalchemy2.Geometry("POLYGON", srid=4326)` instead of `Column(Text)`.
+2. **Migration**: `003_postgis_geometry.py` converts existing TEXT data via `ST_GeomFromGeoJSON` and creates a GiST spatial index.
+3. **Service layer**: `gis_service.py` uses `to_shape`/`from_shape` for GeoJSON ↔ WKBElement conversion.
+4. **New endpoint**: `GET /gis/parcels/nearby?lat=&lng=&radius_km=` uses `ST_DWithin` with geography cast for efficient radius queries.
+5. **Seed script**: Updated to use `from_shape(shape(polygon), srid=4326)` instead of `str(polygon)`.
+**Supersedes D1** for the geometry column type; the spatial query capability is new.
+
+## D21: HttpOnly Cookie-Based JWT Tokens
+**Decision:** Move JWT access and refresh tokens from localStorage into httpOnly, Secure, SameSite cookies.
+**Rationale:** localStorage is accessible to any JavaScript on the page, making tokens vulnerable to XSS attacks. HttpOnly cookies are inaccessible to JS and automatically sent by the browser:
+1. **Login**: Server sets `nlams_access_token` and `nlams_refresh_token` as httpOnly cookies on `/auth/login`.
+2. **Refresh**: `/auth/refresh` reads the refresh token from the cookie (falls back to JSON body for API clients).
+3. **Logout**: Server clears both cookies and revokes the refresh token.
+4. **Frontend**: Axios client uses `withCredentials: true` instead of manual `Authorization` header.
+5. **deps.py**: `get_current_user` reads from cookie first, then falls back to Authorization header for backward compat.
+6. **Cookie flags**: `Secure` only in production, `SameSite=lax`, `path=/`.
+
+## D22: Silent Token Refresh on 401
+**Decision:** Frontend Axios interceptor attempts a silent `/auth/refresh` call on 401 before redirecting to login.
+**Rationale:** Without this, users would be forced to re-login every time their access token expires (60 min). The interceptor:
+1. Queues concurrent requests while refresh is in progress.
+2. On successful refresh, retries the original request.
+3. On failed refresh, clears cached user data and redirects to `/login`.
+4. Skips refresh for the `/auth/refresh` endpoint itself to avoid infinite loops.
+
+## D23: OTP Gating Behind Environment Flag
+**Decision:** The `/auth/forgot-password` endpoint only returns the OTP in the response body when `ENVIRONMENT != "production"`.
+**Rationale:** In production, OTPs should be delivered via SMS/email (SMS_PROVIDER config), never exposed in API responses. In development/demo mode, returning the OTP in the response simplifies testing and demos.
+
+## D24: Alembic as Canonical Schema Source
+**Decision:** Make Alembic migrations the single source of truth for the database schema. Add CI steps to detect drift from `schema.sql` and verify migration reversibility.
+**Rationale:** Previously, `schema.sql` and Alembic migrations could diverge silently, causing "works on my machine" issues. Two new CI jobs:
+1. **`backend-migrations`**: Runs `alembic upgrade head` → `alembic downgrade base` → `alembic upgrade head` → `alembic downgrade base` to verify every migration is reversible.
+2. **`backend-schema-drift`**: Runs `alembic upgrade head`, dumps schema via `pg_dump`, and diffs against `schema.sql` (advisory for now).
+
+## D25: Playwright E2E Test Suite
+**Decision:** Add Playwright for end-to-end testing of 6 role-based login → core workflow → logout flows against a real backend + seeded database.
+**Rationale:** Vitest/RTL covers component-level testing but cannot verify the full user journey (login → navigation → data display → logout). Playwright tests:
+1. All 6 roles: Super Admin, State Authority, District Officer, Agency, Field Officer, Citizen.
+2. Cross-cutting checks: login page renders all buttons, protected routes redirect, invalid credentials show error.
+3. CI job spins up Postgres, seeds DB, starts backend + frontend, runs Playwright, tears down.
+
+## D26: Internationalization (i18n) for Citizen Pages
+**Decision:** Add `react-i18next` with English and Hindi as the first two locales, targeting citizen-facing pages (Track Status, My Compensation, My R&R).
+**Rationale:** Citizen pages are the highest-impact for real users in India. Hindi is the most widely spoken language. The i18n setup:
+1. **Framework**: `react-i18next` with `i18next-browser-languagedetector` for auto-detection.
+2. **Scope**: Only citizen pages are translated initially; admin/field pages remain English-only.
+3. **Language toggle**: Topbar button for citizen role switches between English (EN) and Hindi (HI).
+4. **Extensibility**: New locales require only a JSON file and resource registration.
+
+## D27: Prometheus Metrics & Structured Logging
+**Decision:** Add `prometheus-fastapi-instrumentator` for request metrics and fix structured logging middleware to capture authenticated user_id.
+**Rationale:** The original structured logging middleware always logged `user_id: null` because nothing extracted the JWT. Fixes:
+1. **User ID extraction**: Middleware decodes the access token from cookie or Authorization header to populate user_id.
+2. **Prometheus**: `GET /metrics` exposes request count, latency histograms, and in-progress gauges.
+3. **Structured logs**: Every request logs `request_id`, `user_id`, `method`, `path`, `status_code`, `latency_ms`.
+
+## D28: Production Docker Compose Profile
+**Decision:** Add `docker-compose.prod.yml` that excludes adminer and dev-only services, enables multi-worker uvicorn, and requires env-file secrets.
+**Rationale:** The dev compose includes adminer (DB UI), source-mounted volumes with `--reload`, and hardcoded secrets. Production profile:
+1. No adminer, no source mounts.
+2. `uvicorn --workers 4` for production throughput.
+3. `SECRET_KEY` required via env var (fails if not set).
+4. Postgres not exposed to host — only accessible from backend container.
+
+## D29: Real Odisha Land-Record Data (bhoomirashi.gov.in)
+**Decision:** Replace all multi-state fabricated seed data with real government land records from bhoomirashi.gov.in export (S.O. 1988E, Khordha district, Odisha).
+**Rationale:** The demo data was entirely fictional (MH/MP/TN/UP/GJ/AP states, random parcels). Real government data makes the dashboards and GIS map meaningful and verifiable. Trade-offs:
+1. **Single state only**: All 249 parcels are in Khordha, Odisha. National dashboard now honestly shows "1 state onboarded".
+2. **Import script**: `backend/app/scripts/import_bhoomirashi_xlsx.py` reads the xlsx, cleans bilingual fields (English + Odia), groups parties by survey number, and upserts idempotently.
+3. **Idempotency**: Truncate-and-reload mode for clean re-import; upsert on (survey_number, village) for incremental updates.
+4. **LandType enum extended**: Added `wet` value to `land_type_enum` (Alembic migration `004`). All bhoomirashi parcels are "Wet" land.
+5. **Village coordinates**: 6 villages geocoded via OpenStreetMap Nominatim (2 confirmed, 4 estimated from Khordha tahsil centroid). Stored on `Village.latitude`/`Village.longitude`.
+
+## D30: Village-Level Map Markers (Not Surveyed Polygons)
+**Decision:** Since bhoomirashi export contains no parcel-level polygons, store Point geometry at village centroids with jitter, and clearly label markers as "approximate" in the UI.
+**Rationale:** Showing accurate-looking polygon boundaries from village centroids would be misleading. Instead:
+1. **Point geometry**: Each parcel gets a Point at the village centroid + small random jitter (±0.002° ≈ ±200m) to prevent stacking.
+2. **Circle markers**: MapLibre renders circles sized by owner count (1→6px, 5+→14px), colored by verification or ownership status.
+3. **UI disclaimer**: "⚠️ Markers are village-level approximations" shown in the legend.
+4. **Extension point**: When real survey-number polygons become available, the `geom` column can be upgraded from Point to Polygon without schema changes (PostGIS GEOMETRY is type-agnostic).
+
+## D31: Dashboard Charts from Real Data
+**Decision:** Rebuild dashboard aggregation queries to compute from actual `LandParcel`/`LandOwner` rows instead of demo-project counts.
+**Rationale:** The original dashboard computed KPIs from project counts and compensation sums. With real data:
+1. **Village-level bar charts**: Parcel count and total area by village (6 villages in Khordha).
+2. **Ownership pie charts**: Government vs private area split (the key dimension in this dataset).
+3. **Co-ownership distribution**: Histogram of owner-count per parcel (159 of 249 parcels have >1 owner).
+4. **National dashboard**: Shows "1 state onboarded" with honest copy instead of a misleading multi-state heatmap.
+
+## D32: Seed Script Rewritten for Real Data
+**Decision:** Gut `seed.py` of all fabricated multi-state data. Keep only role definitions, demo user accounts (tied to Odisha/Khordha), and a call to the bhoomirashi import script.
+**Rationale:** Having two independent data paths (seed.py for fake data + import script for real data) creates confusion. The seed script now:
+1. Creates roles and 6 demo users (all tied to Odisha state).
+2. Calls `import_bhoomirashi()` to populate land parcels/owners from the xlsx.
+3. No code path inserts fictional states, districts, villages, or parcels.
+4. Default login credentials updated to reflect Odisha-based users (anil@odisha.gov.in, suresh@khordha.gov.in).
+
+## D33: ML Land-Nature Screening Integration
+**Decision:** Integrate a trained scikit-learn screening model (logistic regression pipeline) that predicts land nature (Government vs Private) from parcel attributes, exposed via authenticated REST endpoints.
+**Rationale:** The bhoomirashi workbook contains a source-reported "Land Nature" column. An ML screening model provides a second-opinion classification trained on 249 Khordha records with 85.1% cross-validated balanced accuracy. Key design choices:
+1. **Lazy loading**: Model artifact (joblib) is loaded on first inference request, never at import time. Missing/disabled/incompatible artifacts return 503 rather than fabricating predictions.
+2. **Version-pinned sklearn**: Model trained on scikit-learn 1.7.2; `requirements.txt` pins `scikit-learn==1.7.2` to avoid `_fill_dtype` AttributeError from incompatible versions.
+3. **Role-based access**: All ML endpoints (`/ml/health`, `/ml/parcels/{id}/land-nature`, `/ml/land-nature/predict`) restricted to staff roles only. Citizens cannot access screening predictions.
+4. **Bilingual normalization**: `normalize_survey_number()` handles Odia/Devanagari + English dual-script survey numbers by transliterating digits, stripping non-alnum characters, and deduplicating repeating segments.
+5. **Staging tables**: Raw workbook data lands in `imported_land_details` / `imported_land_parties` tables (raw values preserved, normalized fields derived) before review. Separate from production `land_parcels` / `land_owners`.
+6. **Disclaimer**: Every prediction response includes: "AI-assisted decision support only; not a legal ownership determination."
+7. **Async inference**: Model runs in `asyncio.to_thread` with a configurable timeout (`ML_INFERENCE_TIMEOUT_SECONDS=10`) to prevent blocking the event loop.
+8. **Alembic**: New migration `005_ml_staging` (linear chain after `004_landtype_wet_village_coords`) creates the staging tables.

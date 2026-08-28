@@ -5,12 +5,21 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 
+const roleRoutes: Record<string, string> = {
+  super_admin: '/admin/dashboard',
+  state_authority: '/state/dashboard',
+  district_officer: '/district/dashboard',
+  agency: '/agency/projects',
+  field_officer: '/field/home',
+  citizen: '/citizen/track',
+};
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,17 +28,9 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      // Navigate based on role stored in localStorage
-      const user = JSON.parse(localStorage.getItem('nlams_user') || '{}');
-      const roleRoutes: Record<string, string> = {
-        super_admin: '/admin/dashboard',
-        state_authority: '/state/dashboard',
-        district_officer: '/district/dashboard',
-        agency: '/agency/projects',
-        field_officer: '/field/home',
-        citizen: '/citizen/track',
-      };
-      navigate(roleRoutes[user.role_name] || '/admin/dashboard');
+      // User is set in AuthContext; navigate based on it
+      const storedUser = JSON.parse(localStorage.getItem('nlams_user') || '{}');
+      navigate(roleRoutes[storedUser.role_name] || '/admin/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid credentials');
     } finally {
@@ -37,23 +38,15 @@ export default function Login() {
     }
   };
 
-  const quickLogin = async (email: string) => {
-    setEmail(email);
+  const quickLogin = async (quickEmail: string) => {
+    setEmail(quickEmail);
     setPassword('password123');
     setError('');
     setLoading(true);
     try {
-      await login(email, 'password123');
-      const user = JSON.parse(localStorage.getItem('nlams_user') || '{}');
-      const roleRoutes: Record<string, string> = {
-        super_admin: '/admin/dashboard',
-        state_authority: '/state/dashboard',
-        district_officer: '/district/dashboard',
-        agency: '/agency/projects',
-        field_officer: '/field/home',
-        citizen: '/citizen/track',
-      };
-      navigate(roleRoutes[user.role_name] || '/admin/dashboard');
+      await login(quickEmail, 'password123');
+      const storedUser = JSON.parse(localStorage.getItem('nlams_user') || '{}');
+      navigate(roleRoutes[storedUser.role_name] || '/admin/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid credentials');
     } finally {
@@ -121,8 +114,8 @@ export default function Login() {
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { label: '🔑 Super Admin', email: 'rajesh@nlams.gov.in' },
-                  { label: '🏛️ State Authority', email: 'anil@maharashtra.gov.in' },
-                  { label: '📋 District Officer', email: 'suresh@nagpur.gov.in' },
+                  { label: '🏛️ State Authority', email: 'anil@odisha.gov.in' },
+                  { label: '📋 District Officer', email: 'suresh@khordha.gov.in' },
                   { label: '🏗️ Agency', email: 'agency@nhai.gov.in' },
                   { label: '📱 Field Officer', email: 'rahul.f@nlams.gov.in' },
                   { label: '👤 Citizen', email: 'ganesh@email.com' },

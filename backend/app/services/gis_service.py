@@ -7,6 +7,9 @@ from typing import Optional
 import json
 import uuid
 
+from geoalchemy2.shape import to_shape, from_shape
+from shapely.geometry import shape, mapping
+
 from app.models.land import LandParcel
 from app.schemas.parcel import ParcelResponse, LandOwnerResponse, PaginatedParcels
 from app.models.audit import AuditLog
@@ -81,10 +84,11 @@ async def build_geojson_featurecollection(
         geom = None
         if parcel.geom:
             try:
-                geom = json.loads(parcel.geom) if isinstance(parcel.geom, str) else parcel.geom
-            except (json.JSONDecodeError, TypeError):
+                geom = mapping(to_shape(parcel.geom))
+            except Exception:
                 geom = None
         if geom:
+            owner_count = len(parcel.owners) if parcel.owners else 0
             features.append(
                 {
                     "type": "Feature",
@@ -109,6 +113,7 @@ async def build_geojson_featurecollection(
                         "district_name": parcel.district.name if parcel.district else None,
                         "state_name": parcel.state.name if parcel.state else None,
                         "project_id": str(parcel.project_id),
+                        "owner_count": owner_count,
                     },
                 }
             )
@@ -129,6 +134,13 @@ async def import_geojson_features(
         if not geometry:
             continue
 
+        # Convert GeoJSON geometry to PostGIS geometry
+        geom_value = None
+        try:
+            geom_value = from_shape(shape(geometry), srid=4326)
+        except Exception:
+            pass
+
         parcel = LandParcel(
             project_id=project_id or uuid.UUID(props.get("project_id", str(uuid.uuid4()))),
             survey_number=props.get("survey_number", f"IMPORT-{imported + 1}"),
@@ -138,7 +150,7 @@ async def import_geojson_features(
             else uuid.uuid4(),
             state_id=uuid.UUID(props["state_id"]) if props.get("state_id") else uuid.uuid4(),
             area_hectares=props.get("area_hectares"),
-            geom=json.dumps(geometry),
+            geom=geom_value,
             land_type=props.get("land_type", "other"),
             ownership_status=props.get("ownership_status", "private"),
         )

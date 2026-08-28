@@ -13,7 +13,18 @@ vi.mock('@/services/api', () => ({
   },
 }));
 
+// Mock the auth service so getMe returns the cached user
+vi.mock('@/services/auth', () => ({
+  authService: {
+    login: vi.fn(),
+    logout: vi.fn(),
+    getMe: vi.fn(),
+    forgotPassword: vi.fn(),
+  },
+}));
+
 import api from '@/services/api';
+import { authService } from '@/services/auth';
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -39,20 +50,21 @@ function renderWithAuth(ui: React.ReactElement, initialEntries: string[]) {
 describe('Field Officer Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.setItem('nlams_access_token', 'mock-token');
-    localStorage.setItem('nlams_user', JSON.stringify({
+    const mockUser = {
       id: 'fo1',
-      full_name: 'Rahul Sharma',
+      full_name: 'Rahul Pradhan',
       email: 'rahul.f@nlams.gov.in',
       phone: '9876543212',
       role_name: 'field_officer',
       state_id: 's1',
-      state_name: 'Maharashtra',
+      state_name: 'Odisha',
       district_id: 'd1',
-      district_name: 'Nagpur',
+      district_name: 'Khordha',
       agency_name: null,
       is_active: true,
-    }));
+    };
+    localStorage.setItem('nlams_user', JSON.stringify(mockUser));
+    (authService.getMe as any).mockResolvedValue(mockUser);
 
     // Mock API responses
     (api.get as any).mockImplementation(() => {

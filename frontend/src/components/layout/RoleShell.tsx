@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../store/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Button } from '../ui/button';
@@ -31,11 +32,14 @@ const FIELD_TABS = [
 
 export function RoleShell() {
   const { user, logout, switchRole } = useAuth();
+  const { i18n } = useTranslation();
   const navigate = useNavigate();
   const [showDemoSwitcher, setShowDemoSwitcher] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const isCitizen = user?.role_name === 'citizen';
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -59,6 +63,16 @@ export function RoleShell() {
             <span className="text-sm text-slate-500">{ROLE_LABELS[user.role_name] || user.role_name}</span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Language switcher (citizen pages) */}
+            {isCitizen && (
+              <button
+                onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'hi' : 'en')}
+                className="text-xs px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
+                aria-label="Switch language"
+              >
+                {i18n.language === 'en' ? 'हिन्दी' : 'English'}
+              </button>
+            )}
             {/* Demo Mode Role Switcher */}
             <div className="relative">
               <Button

@@ -1,0 +1,36 @@
+{
+  "n_rows": 249,
+  "n_government": 23,
+  "n_private": 226,
+  "cv_balanced_accuracy_mean": 0.8514,
+  "cv_balanced_accuracy_std": 0.0623,
+  "cv_f1_macro_mean": 0.6939,
+  "in_sample_classification_report": {
+    "government": {
+      "precision": 0.35,
+      "recall": 0.9130434782608695,
+      "f1-score": 0.5060240963855421,
+      "support": 23.0
+    },
+    "private": {
+      "precision": 0.9894179894179894,
+      "recall": 0.827433628318584,
+      "f1-score": 0.9012048192771084,
+      "support": 226.0
+    },
+    "accuracy": 0.8353413654618473,
+    "macro avg": {
+      "precision": 0.6697089947089947,
+      "recall": 0.8702385532897268,
+      "f1-score": 0.7036144578313253,
+      "support": 249.0
+    },
+    "weighted avg": {
+      "precision": 0.9303552835681351,
+      "recall": 0.8353413654618473,
+      "f1-score": 0.8647021822228674,
+      "support": 249.0
+    }
+  },
+  "note": "Cross-validated metrics are the honest estimate. The dataset is a single Khordha notification with 6 villages; expect weak generalization outside this district. Class distribution is heavily imbalanced (~9% government)."
+}

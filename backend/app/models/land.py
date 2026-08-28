@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Column, String, Numeric, ForeignKey, Enum as SAEnum, Text, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
+from geoalchemy2 import Geometry
 from app.db.base import Base, TimestampMixin, SoftDeleteMixin
 import enum
 
@@ -12,6 +13,7 @@ class LandType(str, enum.Enum):
     commercial = "commercial"
     forest = "forest"
     govt = "govt"
+    wet = "wet"
     other = "other"
 
 
@@ -46,8 +48,8 @@ class LandParcel(Base, TimestampMixin, SoftDeleteMixin):
     state_id = Column(UUID(as_uuid=True), ForeignKey("states.id"), nullable=False, index=True)
     area_hectares = Column(Numeric(12, 4), nullable=True)
     geom = Column(
-        Text, nullable=True
-    )  # Will store GeoJSON geometry as text; PostGIS GEOMETRY handled at DB level
+        Geometry(srid=4326), nullable=True
+    )
     land_type = Column(
         SAEnum(LandType, name="land_type_enum"), default=LandType.agricultural, nullable=False
     )
@@ -77,7 +79,7 @@ class LandOwner(Base, TimestampMixin):
     parcel_id = Column(
         UUID(as_uuid=True), ForeignKey("land_parcels.id"), nullable=False, index=True
     )
-    full_name = Column(String(200), nullable=False)
+    full_name = Column(String(500), nullable=False)
     aadhaar_masked = Column(String(20), nullable=True)
     phone = Column(String(15), nullable=False)
     email = Column(String(200), nullable=True)
